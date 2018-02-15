@@ -231,6 +231,64 @@ function defineObs(name)
     o.X0=[200.];
     o.Y0=[43.];
     o.status=falses(length(o.X0));
+  elseif name==:s1
+    o.name=name;
+    o.A=[1.] # 5
+    o.B=[1.] # 5
+    o.s_x=[0.]
+    o.s_y=[0.]
+    o.X0=[200.]
+    o.Y0=[50.]
+    o.status=falses(length(o.X0));
+  elseif name==:s2
+    o.name=name;
+    o.A=[1.]
+    o.B=[1.]
+    o.s_x=[2.]
+    o.s_y=[0.]
+    o.X0=[190]
+    o.Y0=[50]
+    o.status=falses(length(o.X0));
+  elseif name==:s3
+    o.name=name;
+    o.A=[5.,10.,2.]
+    o.B=[5.,10.,2.]
+    o.s_x=[0.,0.,0.]
+    o.s_y=[0.,0.,0.]
+    o.X0=[205.,180.,200.]
+    o.Y0=[50.,75.,30.]
+    o.status=falses(length(o.X0));
+  elseif name==:s4
+    o.name=name;
+    o.A=[5,4,2]
+    o.B=[5,4,2]
+    o.s_x=[-2,-1,0]
+    o.s_y=[0,1,4.5]
+    o.X0=[205,180,200]
+    o.Y0=[57,75,30]
+    o.status=falses(length(o.X0));
+  elseif name==:s5
+    o.name=name;
+    A=[2.5 1.5];      # small car
+    B=[3.3 1.9];      # HUMMVEEs
+    C=[9.8/2 3.65/2]; # tanks
+    random=[0 0.6 1 0.25 0.6 0.5495 0.4852 0.8905 0.7990 1];
+    o.X0=[225,225,220,170,220,165,200];
+    o.Y0=[25,30,45,60,75,95,50];
+    o.A=[B[1],B[1],B[1],C[1],A[1],C[1],C[2]];
+    o.B=[B[2],B[2],B[2],C[2],A[2],C[2],C[1]];
+    o.s_x=[-5,-5.5,-6,6,-5,4,-2];
+    o.s_y=[0,0,0,0,0,0,5];
+    o.status=falses(length(o.X0));
+  elseif name==:s6
+    o.name=name;
+    o.A=[10,2,5,3]
+    o.B=[10,2,5,3]
+    o.s_x=[-3,4,-2,0]
+    o.s_y=[-2,4,2.5,0]
+    o.X0=[180,180,220,200]
+    o.Y0=[75,40,60,100]
+    o.status=falses(length(o.X0));
   elseif name==:autoGazebo
     o.name=name;
     o.A=[1.];
@@ -348,6 +406,12 @@ function defineGoal(name)
     g.x_ref=200.;
     g.y_ref=100.;
     g.psi_ref=pi/2;
+  elseif name==:RTPP
+    g=Goal();
+    g.name=name;
+    g.x_ref=200.;
+    g.y_ref=125.;
+    g.psi_ref=pi/2;
   elseif name==:path # test case for testPathFollowing.jl
     g=Goal();
     g.name=name;
@@ -380,11 +444,13 @@ type Misc
   tp                 # prediction horizon (s)
   tex                # execution horizon (s)
   max_cpu_time       # maximum time the algorithm has
-  sm                 # (m) distance to make sure we don't hit obstacle
+  sm                 # (m) distance to make sure we don't hit obstacle (for optimization)
+  sm2                # (m) distance to make sure we don't hit obstacle (for crash checking)
   Lr                 # LiDAR range (m)
   L_rd               # relaxation distance to LiDAR range
   sigma              # 0.05 (m)small margin, if the vehicle is within this margin, then the target is considered to be reached
   Nck                # number of points per interval
+  N                  # number of points in :tm methods
   solver             # either :IPOPT or :KNITRO
   max_iter           # max evaluations in optimization
   mpc_max_iter       # an MPC parameter
@@ -405,6 +471,8 @@ function Misc()
             [],
             0.0,
             0.0,
+            [],
+            [],
             [],
             [],
             [],
@@ -510,6 +578,27 @@ function defineMisc(name)
     m.Lr=50.
     m.L_rd=5.;
     m.integrationScheme=:lgrExplicit
+  elseif name==:RTPP
+    m.name=name;
+    m.model=:ThreeDOFv2;
+    m.X0=[200.0, 0.0, 0.0, 0.0, pi/2, 0.0, 17.0, 0.0];
+    m.Xlims=[111.,250.]
+    m.Ylims=[-1., 140.]
+    m.tex=0.5;
+    m.max_cpu_time=300.;
+    m.sm=4.5;
+    m.sm2=3;
+    m.sigma=1.0;
+    #m.Nck=[10,8,6];#[12,10,8,6];
+    #m.n.N=
+    #m.solver=:KNITRO;
+    m.max_iter=500;
+    m.mpc_max_iter=60;
+    m.PredictX0=true;
+    m.FixedTp=true;
+    m.Lr= 50. # not in play
+    m.L_rd=5.;
+  #  m.integrationScheme=:lgrExplicit
   elseif name==:path
     m.name=name;
     m.model=:ThreeDOFv2;
@@ -596,6 +685,7 @@ function setMisc!(c;
                 L_rd=c.m.L_rd,
                 sigma=c.m.sigma,
                 Nck=c.m.Nck,
+                N=c.m.N,
                 solver=c.m.solver,
                 max_iter=c.m.max_iter,
                 mpc_max_iter=c.m.mpc_max_iter,
@@ -616,6 +706,7 @@ function setMisc!(c;
     c.m.L_rd=L_rd;
     c.m.sigma=sigma;
     c.m.Nck=Nck;
+    c.m.N=N;
     c.m.solver=solver;
     c.m.max_iter=max_iter;
     c.m.mpc_max_iter=mpc_max_iter;
@@ -715,6 +806,13 @@ function defineCase(;name::Symbol=:auto,
      c.w=defineWeights(c.name);
      c.t=defineTrack(:NA);
      c.m=defineMisc(:autoARC);
+   elseif mode==:RTPP
+     c.name=mode
+     c.g=defineGoal(:RTPP);
+  #   c.o=defineObs(:autoGazebo);
+     c.w=defineWeights(:auto);
+     c.t=defineTrack(:NA);
+     c.m=defineMisc(c.name);
    elseif mode==:path
      c.name=mode;
      c.g=defineGoal(c.name);

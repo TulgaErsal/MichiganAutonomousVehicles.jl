@@ -1,6 +1,7 @@
 julia 0.6
-NLOptControl
-PrettyPlots
+NLOptControl 0.1.5
 VehicleModels
 Parameters
 DataFrames
+KNITRO
+Ipopt

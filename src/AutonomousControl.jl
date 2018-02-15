@@ -8,8 +8,8 @@ using .CaseModule
 
 export
       initializeAutonomousControl,
-      autonomousControl,
-      updateAutoParams!
+      updateAutoParams!,
+      avMpc
 
 """
 n=initializeAutonomousControl(c);
@@ -57,10 +57,15 @@ function initializeAutonomousControl(c)
 
  # solver settings
  solver_time = (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_real
- SS=((:name=>c.m.solver),(:mpc_defaults=>true),(solver_time=>100.)) # let the solver have more time for the initalization
+ SS=((:name=>c.m.solver),(:mpc_defaults=>true),(solver_time=>500.)) # let the solver have more time for the initalization
 
  # configure problem
- configure!(n;(Nck=c.m.Nck),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>SS))
+ if c.m.integrationScheme==:lgrImplicit || c.m.integrationScheme==:lgrExplicit
+   configure!(n;(:Nck=>c.m.Nck),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>SS))
+ else
+   configure!(n;(:N=>c.m.N),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>SS))
+ end
+
  x=n.r.x[:,1];y=n.r.x[:,2];psi=n.r.x[:,5]; # pointers to JuMP variables
 
  #################################
@@ -75,7 +80,7 @@ function initializeAutonomousControl(c)
  @NLparameter(n.mdl, speed_y[i=1:Q] == copy(c.o.s_y[i]));
  obs_params=[a,b,X_0,Y_0,speed_x,speed_y,Q];
 
- # obstacle postion after the intial postion
+ # obstacle postion after the initial postion
  X_obs=@NLexpression(n.mdl, [j=1:Q,i=1:n.numStatePoints], X_0[j] + speed_x[j]*n.tV[i]);
  Y_obs=@NLexpression(n.mdl, [j=1:Q,i=1:n.numStatePoints], Y_0[j] + speed_y[j]*n.tV[i]);
 
@@ -114,7 +119,7 @@ end
   @NLparameter(n.mdl, w_goal_param == 0.0)
   @NLparameter(n.mdl, w_psi_param == 0.0)
  else
-  @NLparameter(n.mdl, w_goal_param == c.w.goal)
+  @NLparameter(n.mdl, w_goal_param == 100*c.w.goal)
   @NLparameter(n.mdl, w_psi_param == c.w.psi)
  end
  obj_params=[w_goal_param,w_psi_param]
@@ -146,7 +151,7 @@ end
  if n.s.save
   warn("saving initial optimization results where functions where cashed!")
  end
- for k in 1:1
+ for k in 1:3
   optimize!(n);
   if n.r.status==:Optimal; break; end
  end
@@ -158,10 +163,8 @@ end
          #  1      2          3          4
  n.params=[pa,obs_params,LiDAR_params,obj_params];
 
- n.s.save=true; # settings
-
- #n.s.evalConstraints=true
-
+ n.s.save=true;
+ n.s.evalConstraints=true
  return n
 end
 
@@ -201,12 +204,60 @@ end
 """
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 2/06/2018, Last Modified: 2/06/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+function avMpc(c)
+ n = initializeAutonomousControl(c);
+ driveStraight!(n)
+ for ii = 1:n.mpc.max_iter
+     println("Running model for the: ",n.r.eval_num," time")
+     updateAutoParams!(n,c)                        # update model parameters
+     status = autonomousControl!(n)                # rerun optimization
+
+     # if the vehicle is very close to the goal sometimes the optimization returns with a small final time
+     # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
+     # expanded from the previous check and one final check is performed otherwise the run is failed
+     if getvalue(n.tf) < 0.01 # assuming that the final time is a design variable, could check, but this module uses tf as a DV
+       if ((n.r.dfs_plant[end][:x][end]-c.g.x_ref)^2 + (n.r.dfs_plant[end][:y][end]-c.g.y_ref)^2)^0.5 < 4*n.XF_tol[1]
+          println("Expanded Goal Attained! \n"); n.mpc.goal_reached=true;
+          break;
+      else
+          warn("Expanded Goal Not Attained! -> stopping simulation! \n"); break;
+      end
+    end
+
+     n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex  # external so that it can be updated easily in PathFollowing
+     simPlant!(n)  # simulating out here even if it is not :Optimal so that we can look at final solution
+
+     if n.r.status==:Optimal || n.r.status==:Suboptimal || n.r.status==:UserLimit
+       println("Passing Optimized Signals to 3DOF Vehicle Model");
+     elseif n.r.status==:Infeasible
+       println("\n FINISH:Pass PREVIOUSLY Optimized Signals to 3DOF Vehicle Model \n"); break;
+     else
+       println("\n There status is nor Optimal or Infeaible -> create logic for this case!\n"); break;
+     end
+   if n.r.eval_num==n.mpc.max_iter
+     warn(" \n This is the last itteration! \n i.e. the maximum number of iterations has been reached while closing the loop; consider increasing (max_iteration) \n")
+   end
+   if ((n.r.dfs_plant[end][:x][end]-c.g.x_ref)^2 + (n.r.dfs_plant[end][:y][end]-c.g.y_ref)^2)^0.5 < 2*n.XF_tol[1]
+      println("Goal Attained! \n"); n.mpc.goal_reached=true;
+      break;
+   end
+   if checkCrash(n,c,c.m.sm2;(:plant=>true))
+     warn(" \n The vehicle crashed -> stopping simulation! \n"); break;
+   end
+ end
+ return n
+end
+"""
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 7/04/2017, Last Modified: 7/04/2017 \n
 --------------------------------------------------------------------------------------\n
 """
 function goalRange!(n,c)
  return ( (n.mpc.X0[end][1] - c.g.x_ref)^2 + (n.mpc.X0[end][2] - c.g.y_ref)^2 )^0.5 < c.m.Lr
 end
-
 
 end # module
