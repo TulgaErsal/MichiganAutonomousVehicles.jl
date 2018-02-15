@@ -127,6 +127,60 @@ function setWeights!(c;
     c.w.driver=driver;
     return nothing
 end
+
+############################### tolerances ########################################
+type Tolerances
+    ix
+    iy
+    iv
+    ir
+    ipsi
+    isa
+    iu
+    iax
+    fx
+    fy
+    fv
+    fr
+    fpsi
+    fsa
+    fu
+    fax
+
+end
+
+function Tolerances()
+Tolerances(
+          );
+end
+
+function defineTolerances(name)
+  if name==:auto
+    w=Weights();
+  elseif name!==:NA
+    error("\n Pick a name for tolerances! \n")
+  end
+  return w
+end
+
+"""
+setTolerances!(c;)
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 2/16/2018, Last Modified: 2/16/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+function setTolerances!(c;
+                      sr=c.w.sr,
+                      path=c.w.path,
+                      driver=c.w.driver
+                      )
+    c.w.sr=sr;
+    c.w.path=path;
+    c.w.driver=driver;
+    return nothing
+end
+
 ############################### obstacle info ########################################
 type Obs
   name
