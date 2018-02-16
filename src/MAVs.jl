@@ -29,6 +29,8 @@ export
       dataSet,
       Obs,
       defineObs,
+      defineSolverSettings,
+      defineTolerances,
 
       # AutonomousControl.jl
       initializeAutonomousControl,

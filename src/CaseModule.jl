@@ -11,7 +11,10 @@ export
       case2dfs,  # currently not working
       dataSet,
       Obs,
-      defineObs
+      defineObs,
+      defineSolverSettings,
+      defineTolerances
+
 ################################################################################
 # Basic Types
 ################################################################################
@@ -80,7 +83,7 @@ type Weights
 end
 
 function Weights()
-  Weights(1.,      # w_goal
+  Weights(100.,      # w_goal
           0.01,    # w_psi
           0.05,    # w_time
           1.0e-5,  # w_haf
@@ -150,17 +153,32 @@ type Tolerances
 end
 
 function Tolerances()
-Tolerances(
+Tolerances(0.05,
+0.05, # ix
+0.05, # iy
+0.05, # ir
+0.01,
+0.001,
+0.05,
+0.05,
+1.0,   # 0.05 (m)small margin, if the vehicle is within this margin, then the target is considered to be reached
+1.0,   # 0.05 (m)small margin, if the vehicle is within this margin, then the target is considered to be reached
+NaN,
+NaN,
+NaN,
+NaN,
+NaN,
+NaN
           );
 end
 
 function defineTolerances(name)
   if name==:auto
-    w=Weights();
+    tol = Tolerances();
   elseif name!==:NA
     error("\n Pick a name for tolerances! \n")
   end
-  return w
+  return tol
 end
 
 """
@@ -180,6 +198,129 @@ function setTolerances!(c;
     c.w.driver=driver;
     return nothing
 end
+
+############################### solver settings ########################################
+type SolverSettings
+  #####################################
+  # settings for both KNITRO and IPOPT
+  ####################################
+  outlev # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
+  # (KNITRO) absolute stopping tolerance for the feasibility error
+  # (Ipopt) Absolute tolerance on the constraint violation.
+  feastol_abs # (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
+  # (KNITRO) maximum number of iterations before termination
+  # (Ipopt) Maximum number of iterations.
+  maxit # (c.m.solver==:Ipopt) ? :max_iter : :maxit
+  # (KNITRO) in seconds, the maximum allowable CPU time before termination
+  # (Ipopt) A limit on CPU seconds that Ipopt can use to solve one problem
+  maxtime_cpu # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  #############################
+  # settings for KNITRO
+  ##########################
+  ftol # relative change in the objective function is less than ftol for ftol_iters consecutive iterations
+  feastol # (c.m.solver==:Ipopt) ? :empty  : :feastol  # relative stopping tolerance for the feasibility error
+  ftol_iters # (c.m.solver==:Ipopt) ? :empty : :ftol_iters  # number of iters to stop after if change in obj fun is less than
+  infeastol # (c.m.solver==:Ipopt) ? :empty : :infeastol # (relative) tolerance used for declaring infeasibility of a model
+  maxfevals # (c.m.solver==:Ipopt) ? :empty :maxfevals  # maximum number of function evaluations before termination
+  maxtime_real # (c.m.solver==:Ipopt) ? : :empty : :maxtime_real # in seconds, the maximum allowable real time before termination
+  opttol # (c.m.solver==:Ipopt) ? :empty : :opttol  # final relative stopping tolerance for the KKT (optimality) error
+  opttol_abs # (c.m.solver==:Ipopt) ? :empty : :opttol_abs # final absolute stopping tolerance for the KKT (optimality) error
+  xtol # (c.m.solver==:Ipopt) ? :empty : :xtol # optimization process will terminate if the relative change in all components of the solution point estimate is less than xtol for xtol_iters
+  ############################
+  # settings for Ipopt
+  ###########################
+  warm_start_init_point  #
+  dual_inf_tol   # Absolute tolerance on the dual infeasibility
+  compl_inf_tol  # Absolute tolerance on the complementarity.
+  acceptable_tol   # Determines which (scaled) overall optimality error is considered to be "acceptable.
+  acceptable_constr_viol_tol   # Absolute tolerance on the constraint violation. "Acceptable" termination requires that the max-norm of the (unscaled) constraint violation is less than this threshold
+  acceptable_dual_inf_tol   # Acceptable" termination requires that the (max-norm of the unscaled) dual infeasibility is less than this threshold
+  acceptable_compl_inf_tol  # "Acceptable" termination requires that the max-norm of the (unscaled) complementarity is less than this threshold
+  acceptable_obj_change_tol   # If the relative change of the objective function (scaled by Max(1,|f(x)|)) is less than this value, this part of the acceptable tolerance termination is satisfied
+  diverging_iterates_tol   # If any component of the primal iterates exceeded this value (in absolute terms), the optimization is aborted
+end
+
+function SolverSettings()
+SolverSettings(:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty,
+:empty        );
+end
+
+function defineSolverSettings(name)
+  s = SolverSettings();
+
+  if typeof(name) ==  Array{Any,1}
+    warn("Not defining solver settings in defineCase().
+          Make sure that defineSolver() is called before optimization.\n  ")
+  else
+    if name==:KNITRO
+      s.outlev = 0
+      s.feastol_abs = 7e-2
+      s.maxit = 500
+      s.maxtime_cpu = 30.
+      s.ftol = 1e-15
+      s.feastol = 1.0e20
+      s.ftol_iters = 5
+      s.infeastol = 1e-2
+      s.maxfevals = -1
+      s.maxtime_real = 30.
+      s.opttol = 1.0e20
+      s.opttol_abs = 5e-1
+      s.xtol = 1e-12
+    elseif name==:Ipopt
+      s.outlev = 0         # :print_level
+      s.feastol_abs = 7e-2 # :constr_viol_tol (NOTE was = 1e-1)
+      s.maxit = 500       # :max_iter
+      s.maxtime_cpu = 30.  # :max_cpu_time
+      s.acceptable_obj_change_tol=1e20
+      s.warm_start_init_point="yes"
+      s.dual_inf_tol = 5.
+      s.compl_inf_tol = 1e-1
+      s.acceptable_tol = 1e-2
+      s.acceptable_constr_viol_tol = 0.01
+      s.acceptable_dual_inf_tol = 1e10
+      s.acceptable_compl_inf_tol = 0.01
+      s.acceptable_obj_change_tol = 1e20
+      s.diverging_iterates_tol = 1e20
+    elseif name!==:NA
+      error("\n Pick a name for solver: ", name, "is not defined. \n")
+    end
+  end
+
+  return s
+end
+
+"""
+setSolverSettings!(c;)
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 2/16/2018, Last Modified: 2/16/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+function setSolverSettings!(c;)
+    return nothing
+end
+
+#TODO make an Error: check for Float64 in iteration number  warning ERROR: LoadError: IPOPT: Couldn't set option 'max_iter' to value '500.0'.
 
 ############################### obstacle info ########################################
 type Obs
@@ -440,7 +581,6 @@ type Misc
   X0                 # intial state (at the start of the simulation)
   Xlims              # limit for x
   Ylims              # limit for Y
-  UX                 # vehicle speed (m/s)
   tp                 # prediction horizon (s)
   tex                # execution horizon (s)
   max_cpu_time       # maximum time the algorithm has
@@ -448,7 +588,6 @@ type Misc
   sm2                # (m) distance to make sure we don't hit obstacle (for crash checking)
   Lr                 # LiDAR range (m)
   L_rd               # relaxation distance to LiDAR range
-  sigma              # 0.05 (m)small margin, if the vehicle is within this margin, then the target is considered to be reached
   Nck                # number of points per interval
   N                  # number of points in :tm methods
   solver             # either :IPOPT or :KNITRO
@@ -461,6 +600,7 @@ type Misc
   followPath         # a bool to follow the path
   NF                 # number to subtract off the constraint check vector-> used for activeSafety mode so driver sees obstacle before autonomy
   integrationScheme
+  tfMax # maximum final time in MPC
 end
 
 function Misc()
@@ -469,7 +609,6 @@ function Misc()
             [],
             [],
             [],
-            0.0,
             0.0,
             [],
             [],
@@ -511,10 +650,8 @@ function defineMisc(name)
     m.tex=0.5;
     m.max_cpu_time=m.tex;
     m.sm=2.0;
-    m.sigma=1.0;
     m.Nck=[12,10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=500;
     m.mpc_max_iter=600;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -530,10 +667,8 @@ function defineMisc(name)
     m.tex=0.5;
     m.max_cpu_time=0.47;#0.41;
     m.sm=5.0;
-    m.sigma=1.0;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:Ipopt;
-    m.max_iter=500;
     m.mpc_max_iter=60;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -549,10 +684,8 @@ function defineMisc(name)
     m.tex=0.5;
     m.max_cpu_time=0.47;#0.41;
     m.sm=5.0;
-    m.sigma=1.0;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=500;
     m.mpc_max_iter=60;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -568,10 +701,8 @@ function defineMisc(name)
     m.tex=0.5;
     m.max_cpu_time=0.47;#0.41;
     m.sm=2.6;
-    m.sigma=1.0;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=500;
     m.mpc_max_iter=600;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -588,32 +719,24 @@ function defineMisc(name)
     m.max_cpu_time=300.;
     m.sm=4.5;
     m.sm2=3;
-    m.sigma=1.0;
-    #m.Nck=[10,8,6];#[12,10,8,6];
-    #m.n.N=
-    #m.solver=:KNITRO;
-    m.max_iter=500;
     m.mpc_max_iter=60;
     m.PredictX0=true;
     m.FixedTp=true;
-    m.Lr= 50. # not in play
+    m.Lr= 50.
     m.L_rd=5.;
-  #  m.integrationScheme=:lgrExplicit
+    m.tfMax = 10.
   elseif name==:path
     m.name=name;
     m.model=:ThreeDOFv2;
-    m.UX=10.0;
-    m.X0=[0.0, 0.0, 0.0, 0.0, pi/2,0.0,m.UX,0.0];
+    m.X0=[0.0, 0.0, 0.0, 0.0, pi/2,0.0,10,0.0];
     m.Xlims=[-1., 100.]
     m.Ylims=[-1., 300.]
     m.tp=6.0;
     m.tex=0.5;
     m.max_cpu_time=m.tex;
     m.sm=2.6;
-    m.sigma=1.0;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=500;
     m.mpc_max_iter=30;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -621,18 +744,15 @@ function defineMisc(name)
   elseif name==:caseStudy
     m.name=name;
     m.model=:ThreeDOFv2;
-    m.UX=10.0;
-    m.X0=[0.0, 0.0, 0.0, 0.0, 1.2037,0.0,m.UX,0.0];
+    m.X0=[0.0, 0.0, 0.0, 0.0, 1.2037,0.0,10,0.0];
     m.Xlims=[-10., 750.]
     m.Ylims=[-10., 200.]
     m.tp=6.0;
     m.tex=0.3;
     m.max_cpu_time=0.25;  #NOTE:this needs to match Matlab model!
     m.sm=2.0;
-    m.sigma=1.0;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=450;
     m.mpc_max_iter=600;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -644,18 +764,15 @@ function defineMisc(name)
   elseif name==:caseStudyPath # test case for testPathFollowing.jl with other model
     m.name=:caseStudy;
     m.model=:ThreeDOFv2;
-    m.UX=10.0;
-    m.X0=[0.0,0.0, 0.0, 0.0,1.2037,0.0,m.UX,0.0];
+    m.X0=[0.0,0.0, 0.0, 0.0,1.2037,0.0,10,0.0];
     m.Xlims=[-10., 730.]
     m.Ylims=[-10., 200.]
     m.tp=7.0;
     m.tex=0.3;
     m.max_cpu_time=0.25;
     m.sm=2.0;
-    m.sigma=1.0;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
-    m.max_iter=300;
     m.mpc_max_iter=30;
     m.PredictX0=true;
     m.FixedTp=true;
@@ -679,15 +796,12 @@ function setMisc!(c;
                 Ylims=c.m.Ylims,
                 tp=c.m.tp,
                 tex=c.m.tex,
-                max_cpu_time=c.m.max_cpu_time,
                 sm=c.m.sm,
                 Lr=c.m.Lr,
                 L_rd=c.m.L_rd,
-                sigma=c.m.sigma,
                 Nck=c.m.Nck,
                 N=c.m.N,
                 solver=c.m.solver,
-                max_iter=c.m.max_iter,
                 mpc_max_iter=c.m.mpc_max_iter,
                 PredictX0=c.m.PredictX0,
                 FixedTp=c.m.FixedTp,
@@ -700,15 +814,12 @@ function setMisc!(c;
     c.m.Ylims=Ylims;
     c.m.tp=tp;
     c.m.tex=tex;
-    c.m.max_cpu_time=max_cpu_time;
     c.m.sm=sm;
     c.m.Lr=Lr;
     c.m.L_rd=L_rd;
-    c.m.sigma=sigma;
     c.m.Nck=Nck;
     c.m.N=N;
     c.m.solver=solver;
-    c.m.max_iter=max_iter;
     c.m.mpc_max_iter=mpc_max_iter;
     c.m.PredictX0=PredictX0;
     c.m.FixedTp=FixedTp;
@@ -727,8 +838,10 @@ abstract type AbstractCase end
 type Case <: AbstractCase
  name
  g::Goal        # goal data
- o::Obs   # obstacle data
+ o::Obs          # obstacle data
  w::Weights     # weight data
+ tol::Tolerances # tolerance data
+ s::SolverSettings  # solver settings
  t::Track       # track data
  m::Misc        # miscelaneous data
 end
@@ -746,6 +859,8 @@ function Case()
       Goal(),
       Obs(),
       Weights(),
+      Tolerances(),
+      SolverSettings(),
       Track(),
       Misc()
     );
@@ -769,6 +884,8 @@ function defineCase(;name::Symbol=:auto,
                     goal::Symbol=:auto,
                     obstacles::Symbol=:auto,
                     weights::Symbol=:auto,
+                    tolerances::Symbol=:auto,
+                    solver::Symbol=:auto,
                     track::Symbol=:NA,
                     misc::Symbol=:auto, kwargs...)
 
@@ -809,10 +926,12 @@ function defineCase(;name::Symbol=:auto,
    elseif mode==:RTPP
      c.name=mode
      c.g=defineGoal(:RTPP);
-  #   c.o=defineObs(:autoGazebo);
+     c.tol=defineTolerances(:auto);
+     #c.o=defineObs(:autoGazebo);
      c.w=defineWeights(:auto);
      c.t=defineTrack(:NA);
      c.m=defineMisc(c.name);
+     # c.s=defineSolverSettings(c.m.solver)
    elseif mode==:path
      c.name=mode;
      c.g=defineGoal(c.name);
@@ -869,37 +988,167 @@ end
 case2dfs(c)
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 3/11/2017, Last Modified: 3/11/2017 \n
+Date Create: 3/11/2017, Last Modified: 2/15/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-# save senario data  # TODO add all options and settings here?
+
 function case2dfs(c)
-# TODO think about just saving n,r,s,params, and mdl
- ###########
- # goal data
- x_ref_data = DataFrame(ID=1, x_ref = c.x_ref)
- y_ref_data = DataFrame(ID=1, y_ref = c.y_ref)
- psi_ref_data = DataFrame(ID=1, psi_ref = c.psi_ref)
+    dfs = DataFrame()
 
- s_data = join(x_ref_data,y_ref_data,on=:ID)
- s_data = join(s_data,psi_ref_data,on=:ID)
+    ##############
+    # weights
+    dfs[:wgoal] = c.w.goal
+    dfs[:wpsi] = c.w.psi # 0
+    dfs[:wtime] = c.w.time
+    dfs[:whaf] = c.w.haf # 0
+    dfs[:wce] = c.w.ce
+    dfs[:csa] = c.w.sa
+    dfs[:wsr] = c.w.sr
+    dfs[:wjx] = c.w.jx
+    dfs[:path] = c.w.path
+    dfs[:driver] = c.w.driver
+    # weights
+    ##############
 
- ###############
- # obstacle data
- A_data = DataFrame(ID = 1:Q, A = c.A);
- B_data = DataFrame(ID = 1:Q, B = c.B);
- s_x_data = DataFrame(ID = 1:Q, s_x = c.s_x);
- s_y_data = DataFrame(ID = 1:Q, s_y = c.s_y);
- X0_data = DataFrame(ID = 1:Q, X0 = c.X0_obs);
- Y0_data = DataFrame(ID = 1:Q, Y0 = c.Y0_obs);
+    ##############
+    # tolerances
+    # initial state tolerances
+    dfs[:ixt] = c.tol.ix
+    dfs[:iyt] = c.tol.iy
+    dfs[:ivt] = c.tol.iv
+    dfs[:irt] = c.tol.ir
+    dfs[:ipsit] = c.tol.ipsi
+    dfs[:isat] = c.tol.isa
+    dfs[:iut] = c.tol.iu
+    dfs[:iaxt] = c.tol.iax
 
- obs_data = join(A_data,B_data, on = :ID);
- obs_data = join(obs_data,s_x_data,on =:ID);
- obs_data = join(obs_data,s_y_data,on =:ID);
- obs_data = join(obs_data,X0_data,on =:ID);
- obs_data = join(obs_data,Y0_data,on=:ID);
+    # final state tolerances
+    dfs[:fxt] = c.tol.fx
+    dfs[:fyt] = c.tol.fy
+    dfs[:fvt] = c.tol.fv
+    dfs[:frt] = c.tol.fr
+    dfs[:fpsit] = c.tol.fpsi
+    dfs[:fsat] = c.tol.fsa
+    dfs[:fut] = c.tol.fu
+    dfs[:faxt] = c.tol.fax
+    # tolerances
+    ##################
 
- return case_data, obs_data
+    #####################
+    # solver settings
+    dfs[:outlev] = c.s.outlev
+    dfs[:feastolAbs] = c.s.feastol_abs
+    dfs[:maxit] = c.s.maxit
+    dfs[:maxtimeCpu] = c.s.maxtime_cpu
+    dfs[:ftol] = c.s.ftol
+    dfs[:feastol] = c.s.feastol
+    dfs[:infeastol] = c.s.infeastol
+    dfs[:maxfevals] = c.s.maxfevals
+    dfs[:maxtimeReal] = c.s.maxtime_real
+    dfs[:opttol] = c.s.opttol
+    dfs[:opttolAbs] = c.s.opttol_abs
+    dfs[:xtol] = c.s.xtol
+    dfs[:acceptableObjChangeTol] = c.s.acceptable_obj_change_tol
+    dfs[:warmStartInitPoint] = c.s.warm_start_init_point
+    dfs[:dualInfTol] = c.s.dual_inf_tol
+    dfs[:acceptableTol] = c.s.acceptable_tol
+    dfs[:acceptableConstrViolTol] = c.s.acceptable_constr_viol_tol
+    dfs[:acceptableDualInfTol] = c.s.acceptable_dual_inf_tol
+    dfs[:acceptableComplInfTol] = c.s.acceptable_compl_inf_tol
+    dfs[:acceptableObjChangeTol] = c.s.acceptable_obj_change_tol
+    dfs[:divergingIteratesTol] = c.s.diverging_iterates_tol
+    # solver settings
+    #####################
+
+    ####################
+    # obstacles
+    dfs[:A] = string(c.o.A)
+    dfs[:B] = string(c.o.B)
+    dfs[:sX] = string(c.o.s_x)
+    dfs[:sy] = string(c.o.s_y)
+    dfs[:Xi] = string(c.o.X0)
+    dfs[:Yi] = string(c.o.Y0)
+    dfs[:status] = string(c.o.status)
+    # obstacles
+    ####################
+
+    ###############
+    # goal
+    dfs[:xRef] = c.g.x_ref
+    dfs[:yRef] = c.g.y_ref
+    dfs[:psiRef] = c.g.psi_ref
+    # goal
+    ###############
+
+    ###################
+    # misc. parameters
+    dfs[:model] = c.m.model
+    dfs[:xi] = c.m.X0[1]
+    dfs[:yi] = c.m.X0[2]
+    dfs[:vi] = c.m.X0[3]
+    dfs[:ri] = c.m.X0[4]
+    dfs[:psii] = c.m.X0[5]
+    dfs[:sai] = c.m.X0[6]
+    dfs[:ui] = c.m.X0[7]
+    dfs[:ax] = c.m.X0[8]
+    dfs[:Xmax] = c.m.Xlims[1]
+    dfs[:Xmin] = c.m.Xlims[2]
+    dfs[:Ymin] = c.m.Ylims[1]
+    dfs[:Ymax] = c.m.Ylims[2]
+    dfs[:tp] = c.m.tp
+    dfs[:tex] = c.m.tex
+    dfs[:maxCPU] = c.m.max_cpu_time
+    dfs[:sms] = c.m.sm
+    dfs[:smh] = c.m.sm2
+    dfs[:Lr] = c.m.Lr
+    dfs[:Lrd] = c.m.L_rd
+
+    if c.m.integrationScheme==:lgrExplicit || c.m.integrationScheme==:lgrImplicit
+        dfs[:NI] = length(c.m.Nck)
+        dfs[:colPts] = sum(c.m.Nck)
+        dfs[:Nck] = string(c.m.Nck)
+    else
+        dfs[:NI] = NaN
+        dfs[:colPts] = c.m.N
+        dfs[:Nck] = NaN
+    end
+    dfs[:solver] = c.m.solver
+    #dfs[:maxIter] = c.m.max_iter
+    dfs[:MPCmaxIter] = c.m.mpc_max_iter
+    dfs[:predictX0] = c.m.PredictX0
+    dfs[:fixedTp] = c.m.FixedTp
+    #dfs[:activeSafety] = c.m.activeSafety
+    #dfs[:followDriver] = c.m.followDriver
+    #dfs[:followPath] = c.m.followPath
+    #dfs[:NF] = c.m.NF
+    dfs[:integrationScheme] = c.m.integrationScheme
+    dfs[:tfMax] = c.m.tfMax
+    # misc. parameters
+    ###################
+    return dfs
+end
+
+"""
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 2/15/2018, Last Modified: 2/15/2018 \n
+-------------------------------------------------------------------------------------\n
+"""
+function obs2dfs(c)
+  A_data = DataFrame(ID = 1:Q, A = c.A);
+  B_data = DataFrame(ID = 1:Q, B = c.B);
+  s_x_data = DataFrame(ID = 1:Q, s_x = c.s_x);
+  s_y_data = DataFrame(ID = 1:Q, s_y = c.s_y);
+  X0_data = DataFrame(ID = 1:Q, X0 = c.X0_obs);
+  Y0_data = DataFrame(ID = 1:Q, Y0 = c.Y0_obs);
+
+  obs_data = join(A_data,B_data, on = :ID);
+  obs_data = join(obs_data,s_x_data,on =:ID);
+  obs_data = join(obs_data,s_y_data,on =:ID);
+  obs_data = join(obs_data,X0_data,on =:ID);
+  obs_data = join(obs_data,Y0_data,on=:ID);
+
+  return obs_data
 end
 
 end # module

@@ -11,6 +11,33 @@ export
       updateAutoParams!,
       avMpc
 
+
+# TODO make sure that the user defined all aspects
+
+"""
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 2/15/2018, Last Modified: 2/15/2018 \n
+-------------------------------------------------------------------------------------\n
+"""
+function solverConfig(c)
+  # settings for both KNITRO and IPOPT
+  outlev = (c.m.solver==:Ipopt) ? :print_level : :outlev
+  feastol_abs = (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
+  maxit = (c.m.solver==:Ipopt) ? :max_iter : :maxit
+  maxtime_cpu = (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  #S1 = ((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit))
+ if c.m.solver == :KNITRO
+   SS=((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit),(:ftol=>c.s.ftol),(:feastol=>c.s.feastol),(:ftol_iters=>c.s.ftol_iters),(:infeastol=>c.s.infeastol),(:maxfevals=>c.s.maxfevals),(:opttol=>c.s.opttol),(:opttol_abs=>c.s.opttol_abs),(:xtol=>c.s.xtol))
+ elseif c.m.solver == :Ipopt
+   #SS=(S1,(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
+   SS=((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
+ end
+
+return SS
+end
+
+
 """
 n=initializeAutonomousControl(c);
 --------------------------------------------------------------------------------------\n
@@ -26,7 +53,7 @@ function initializeAutonomousControl(c)
  XU=[x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN];
  CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
  n=define(numStates=8,numControls=2,X0=copy(c.m.X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
- n.s.tf_max=10.0;
+ n.s.tf_max=c.m.tfMax;
  n.params=[pa];   # vehicle parameters
 
  # set mpc parameters
@@ -36,8 +63,8 @@ function initializeAutonomousControl(c)
  n.mpc.modelEquations=ThreeDOFv2;
 
  # define tolerances
- X0_tol=[0.05,0.05,0.05,0.05,0.01,0.001,0.05,0.05];
- XF_tol=[c.m.sigma,c.m.sigma,NaN,NaN,NaN,NaN,NaN,NaN];
+ X0_tol=[c.tol.ix, c.tol.iy, c.tol.iv, c.tol.ir, c.tol.ipsi, c.tol.isa, c.tol.iu, c.tol.iax];
+ XF_tol=[c.tol.fx, c.tol.fy, c.tol.fv, c.tol.fr, c.tol.fpsi, c.tol.fsa, c.tol.fu, c.tol.fax];
  defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol);
 
          # 1  2  3  4  5    6   7   8
@@ -55,15 +82,12 @@ function initializeAutonomousControl(c)
  dynamics!(n,dx)
  constraints!(n,con)
 
- # solver settings
- solver_time = (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_real
- SS=((:name=>c.m.solver),(:mpc_defaults=>true),(solver_time=>500.)) # let the solver have more time for the initalization
-
+ #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed NOTE will not work properly
  # configure problem
  if c.m.integrationScheme==:lgrImplicit || c.m.integrationScheme==:lgrExplicit
-   configure!(n;(:Nck=>c.m.Nck),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>SS))
+   configure!(n;(:Nck=>c.m.Nck),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>solverConfig(c)))
  else
-   configure!(n;(:N=>c.m.N),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>SS))
+   configure!(n;(:N=>c.m.N),(:integrationScheme=>c.m.integrationScheme),(:finalTimeDV=>true),(:solverSettings=>solverConfig(c)))
  end
 
  x=n.r.x[:,1];y=n.r.x[:,2];psi=n.r.x[:,5]; # pointers to JuMP variables
@@ -119,7 +143,7 @@ end
   @NLparameter(n.mdl, w_goal_param == 0.0)
   @NLparameter(n.mdl, w_psi_param == 0.0)
  else
-  @NLparameter(n.mdl, w_goal_param == 100*c.w.goal)
+  @NLparameter(n.mdl, w_goal_param == c.w.goal)
   @NLparameter(n.mdl, w_psi_param == c.w.psi)
  end
  obj_params=[w_goal_param,w_psi_param]
@@ -145,7 +169,7 @@ end
  @NLobjective(n.mdl, Min, goal_obj + psi_obj + c.w.Fz*tire_obj + haf_obj + c.w.time*n.tf + ce_obj )
 
  #########################
- # intial optimization (s)
+ # initial optimization (s)
  ########################
  n.s.save=false; n.s.MPC=false; n.s.evalConstraints=false;
  if n.s.save
@@ -156,9 +180,7 @@ end
   if n.r.status==:Optimal; break; end
  end
 
- # modifify the maximum solver time
- SS=Dict((:name=>c.m.solver),(:mpc_defaults=>true),(solver_time=>c.m.max_cpu_time))
- defineSolver!(n,SS)
+# defineSolver!(n,solverConfig(c)) # modifying solver settings NOTE currently not in use
 
          #  1      2          3          4
  n.params=[pa,obs_params,LiDAR_params,obj_params];
