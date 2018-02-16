@@ -8,11 +8,11 @@ export
       setWeights!,
       setMisc!,
       setupResults,
-      case2dfs,  # currently not working
+      case2dfs,
       dataSet,
       Obs,
       defineObs,
-      defineSolverSettings,
+      setSolverSettings!,
       defineTolerances
 
 ################################################################################
@@ -241,36 +241,36 @@ type SolverSettings
 end
 
 function SolverSettings()
-SolverSettings(:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty,
-:empty        );
+  SolverSettings(:empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty,
+  :empty        );
 end
 
-function defineSolverSettings(name)
-  s = SolverSettings();
+function defaultSolverSettings(name)
 
+  s = SolverSettings()
   if typeof(name) ==  Array{Any,1}
     warn("Not defining solver settings in defineCase().
-          Make sure that defineSolver() is called before optimization.\n  ")
+          Make sure that defaultSolverSettings() is called before optimization.\n  ")
   else
     if name==:KNITRO
       s.outlev = 0
@@ -289,7 +289,7 @@ function defineSolverSettings(name)
     elseif name==:Ipopt
       s.outlev = 0         # :print_level
       s.feastol_abs = 7e-2 # :constr_viol_tol (NOTE was = 1e-1)
-      s.maxit = 500       # :max_iter
+      s.maxit = 500        # :max_iter
       s.maxtime_cpu = 30.  # :max_cpu_time
       s.acceptable_obj_change_tol=1e20
       s.warm_start_init_point="yes"
@@ -316,8 +316,22 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/16/2018, Last Modified: 2/16/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function setSolverSettings!(c;)
-    return nothing
+function setSolverSettings!(c; kwargs... )
+  kwargs = Dict(kwargs)
+
+  # start with default settings
+  c.s = defaultSolverSettings(c.m.solver)
+
+  # modify additional defaults individually
+  for (key,value) in kw
+    if haskey(n.s.solver.settings,key)
+      n.s.solver.settings[key]=value
+    else #if  (key!=:name && key!=:mpc_defaults)  # ignore the name and default settings option TODO could remove them from the Dict
+      error(string(" \n Unknown key: ", kw, " for ", n.s.solver.name, " used in defineSolver!() \n "))
+    end
+  end
+
+  return nothing
 end
 
 #TODO make an Error: check for Float64 in iteration number  warning ERROR: LoadError: IPOPT: Couldn't set option 'max_iter' to value '500.0'.
@@ -529,45 +543,33 @@ Date Create: 3/28/2017, Last Modified: 3/28/2017 \n
 --------------------------------------------------------------------------------------\n
 """
 function defineGoal(name)
+  g=Goal()
+  g.name=name
   if name==:auto
-    g=Goal();
-    g.name=name;
     g.x_ref=200.;
     g.y_ref=125.;
     g.psi_ref=pi/2;
   elseif name==:autoBench
-    g=Goal();
-    g.name=name;
     g.x_ref=200.;
     g.y_ref=100.;
     g.psi_ref=pi/2;
   elseif name==:autoGazebo
-    g=Goal();
-    g.name=name;
     g.x_ref=200.;
     g.y_ref=100.;
     g.psi_ref=pi/2;
   elseif name==:RTPP
-    g=Goal();
-    g.name=name;
     g.x_ref=200.;
     g.y_ref=125.;
     g.psi_ref=pi/2;
   elseif name==:path # test case for testPathFollowing.jl
-    g=Goal();
-    g.name=name;
     g.x_ref=65.0;
     g.y_ref=250.0;
     g.psi_ref=pi/2; #NA
   elseif name==:caseStudy
-    g=Goal();
-    g.name=name;
     g.x_ref=702.372760886434;
     g.y_ref=120.986699170193;
     g.psi_ref=pi/2;
   elseif name==:NA # g is already defined
-    g=Goal();
-    g.name=name;
   else
     error("\n Pick a name for goal data! \n")
   end
@@ -648,7 +650,6 @@ function defineMisc(name)
     m.Xlims=[-1., 400.]
     m.Ylims=[-1., 400.]
     m.tex=0.5;
-    m.max_cpu_time=m.tex;
     m.sm=2.0;
     m.Nck=[12,10,8,6];
     m.solver=:KNITRO;
@@ -665,7 +666,6 @@ function defineMisc(name)
     m.Xlims=[111.,250.]
     m.Ylims=[-1., 140.]
     m.tex=0.5;
-    m.max_cpu_time=0.47;#0.41;
     m.sm=5.0;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:Ipopt;
@@ -682,7 +682,6 @@ function defineMisc(name)
     m.Xlims=[111.,250.]
     m.Ylims=[-1., 140.]
     m.tex=0.5;
-    m.max_cpu_time=0.47;#0.41;
     m.sm=5.0;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:KNITRO;
@@ -699,7 +698,6 @@ function defineMisc(name)
     m.Xlims=[111.,250.]
     m.Ylims=[-1., 140.]
     m.tex=0.5;
-    m.max_cpu_time=0.47;#0.41;
     m.sm=2.6;
     m.Nck=[10,8,6];#[12,10,8,6];
     m.solver=:KNITRO;
@@ -733,7 +731,6 @@ function defineMisc(name)
     m.Ylims=[-1., 300.]
     m.tp=6.0;
     m.tex=0.5;
-    m.max_cpu_time=m.tex;
     m.sm=2.6;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
@@ -749,7 +746,6 @@ function defineMisc(name)
     m.Ylims=[-10., 200.]
     m.tp=6.0;
     m.tex=0.3;
-    m.max_cpu_time=0.25;  #NOTE:this needs to match Matlab model!
     m.sm=2.0;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
@@ -769,7 +765,6 @@ function defineMisc(name)
     m.Ylims=[-10., 200.]
     m.tp=7.0;
     m.tex=0.3;
-    m.max_cpu_time=0.25;
     m.sm=2.0;
     m.Nck=[10,8,6];
     m.solver=:KNITRO;
@@ -877,17 +872,10 @@ c=defineCase(;(mode=>:path));
 
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 3/11/2017, Last Modified: 7/4/2017 \n
+Date Create: 3/11/2017, Last Modified: 2/16/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function defineCase(;name::Symbol=:auto,
-                    goal::Symbol=:auto,
-                    obstacles::Symbol=:auto,
-                    weights::Symbol=:auto,
-                    tolerances::Symbol=:auto,
-                    solver::Symbol=:auto,
-                    track::Symbol=:NA,
-                    misc::Symbol=:auto, kwargs...)
+function defineCase(; kwargs...)
 
   kw = Dict(kwargs);
   if !haskey(kw,:mode); kw_ = Dict(:mode => :auto); mode = get(kw_,:mode,0);
@@ -931,7 +919,7 @@ function defineCase(;name::Symbol=:auto,
      c.w=defineWeights(:auto);
      c.t=defineTrack(:NA);
      c.m=defineMisc(c.name);
-     # c.s=defineSolverSettings(c.m.solver)
+     # c.s=defaultSolverSettings(:Ipopt)
    elseif mode==:path
      c.name=mode;
      c.g=defineGoal(c.name);
@@ -954,8 +942,7 @@ function defineCase(;name::Symbol=:auto,
      c.t=defineTrack(c.name);
      c.m=defineMisc(:caseStudyPath);
    else
-     name=:user;
-     c.name=name;
+     c.name=:user;
      c.g=defineGoal(goal);
      c.o=defineObs(obstacles);
      c.w=defineWeights(weights);
@@ -1062,13 +1049,13 @@ function case2dfs(c)
 
     ####################
     # obstacles
-    dfs[:A] = string(c.o.A)
-    dfs[:B] = string(c.o.B)
-    dfs[:sX] = string(c.o.s_x)
-    dfs[:sy] = string(c.o.s_y)
-    dfs[:Xi] = string(c.o.X0)
-    dfs[:Yi] = string(c.o.Y0)
-    dfs[:status] = string(c.o.status)
+    dfs[:A] = string(c.o.A')
+    dfs[:B] = string(c.o.B')
+    dfs[:sX] = string(c.o.s_x')
+    dfs[:sy] = string(c.o.s_y')
+    dfs[:Xi] = string(c.o.X0')
+    dfs[:Yi] = string(c.o.Y0')
+    dfs[:status] = string(c.o.status')
     # obstacles
     ####################
 
@@ -1106,7 +1093,7 @@ function case2dfs(c)
     if c.m.integrationScheme==:lgrExplicit || c.m.integrationScheme==:lgrImplicit
         dfs[:NI] = length(c.m.Nck)
         dfs[:colPts] = sum(c.m.Nck)
-        dfs[:Nck] = string(c.m.Nck)
+        dfs[:Nck] = string(c.m.Nck')
     else
         dfs[:NI] = NaN
         dfs[:colPts] = c.m.N
