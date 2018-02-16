@@ -186,7 +186,7 @@ end
  n.params=[pa,obs_params,LiDAR_params,obj_params];
 
  n.s.save=true;
- n.s.evalConstraints=true
+ # n.s.evalConstraints=true # NOTE can turn back on to investigate infeasibilities
  return n
 end
 

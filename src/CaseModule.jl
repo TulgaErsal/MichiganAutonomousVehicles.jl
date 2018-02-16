@@ -1128,19 +1128,21 @@ function case2dfs(c)
     return dfs
 end
 
+
 """
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/15/2018, Last Modified: 2/15/2018 \n
 -------------------------------------------------------------------------------------\n
 """
-function obs2dfs(c)
-  A_data = DataFrame(ID = 1:Q, A = c.A);
-  B_data = DataFrame(ID = 1:Q, B = c.B);
-  s_x_data = DataFrame(ID = 1:Q, s_x = c.s_x);
-  s_y_data = DataFrame(ID = 1:Q, s_y = c.s_y);
-  X0_data = DataFrame(ID = 1:Q, X0 = c.X0_obs);
-  Y0_data = DataFrame(ID = 1:Q, Y0 = c.Y0_obs);
+function obs2dfs2(c)
+  Q = length(c.o.A)
+  A_data = DataFrame(ID = 1:Q, A = c.o.A);
+  B_data = DataFrame(ID = 1:Q, B = c.o.B);
+  s_x_data = DataFrame(ID = 1:Q, s_x = c.o.s_x);
+  s_y_data = DataFrame(ID = 1:Q, s_y = c.o.s_y);
+  X0_data = DataFrame(ID = 1:Q, X0 = c.o.X0);
+  Y0_data = DataFrame(ID = 1:Q, Y0 = c.o.Y0);
 
   obs_data = join(A_data,B_data, on = :ID);
   obs_data = join(obs_data,s_x_data,on =:ID);
