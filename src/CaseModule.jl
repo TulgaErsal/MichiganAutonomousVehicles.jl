@@ -318,18 +318,9 @@ Date Create: 2/16/2018, Last Modified: 2/16/2018 \n
 """
 function setSolverSettings!(c; kwargs... )
   kwargs = Dict(kwargs)
-
+# TODO get ride of CaseModule or use better config methods
   # start with default settings
   c.s = defaultSolverSettings(c.m.solver)
-
-  # modify additional defaults individually
-  for (key,value) in kw
-    if haskey(n.s.solver.settings,key)
-      n.s.solver.settings[key]=value
-    else #if  (key!=:name && key!=:mpc_defaults)  # ignore the name and default settings option TODO could remove them from the Dict
-      error(string(" \n Unknown key: ", kw, " for ", n.s.solver.name, " used in defineSolver!() \n "))
-    end
-  end
 
   return nothing
 end
