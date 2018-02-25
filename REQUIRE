@@ -3,5 +3,3 @@ NLOptControl 0.1.5+
 VehicleModels 0.1.3+
 Parameters
 DataFrames
-KNITRO
-Ipopt
