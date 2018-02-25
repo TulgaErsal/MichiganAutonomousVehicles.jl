@@ -84,7 +84,7 @@ function initializeAutonomousControl(c)
 
  #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed NOTE will not work properly
  # configure problem
- if isempty(c.s.outlev)
+ if c.s.outlev==:empty
    error("Call setSolverSettings!(c) before initializeAutonomousControl(c) \n
           Note in the future setSolverSettings!(c) should be called in initializeAutonomousControl(c).\n
           But doing this in the REPEL creates a constructor issue. ")
