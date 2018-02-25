@@ -675,7 +675,7 @@ function defineMisc(name)
     m.tex=0.5;
     m.sm=5.0;
     m.Nck=[10,8,6];#[12,10,8,6];
-    m.solver=:KNITRO;
+    m.solver=:Ipopt;
     m.mpc_max_iter=60;
     m.PredictX0=true;
     m.FixedTp=true;
