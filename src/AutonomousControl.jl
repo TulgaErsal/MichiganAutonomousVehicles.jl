@@ -64,7 +64,6 @@ function initializeAutonomousControl(c)
  X0_tol=[c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]];
 # XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]];
  XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], NaN, NaN, NaN, NaN, NaN, NaN];
-
  defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol);
 
          # 1  2  3  4  5    6   7   8
@@ -82,7 +81,7 @@ function initializeAutonomousControl(c)
  dynamics!(n,dx)
  constraints!(n,con)
 
- #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed NOTE will not work properly
+ #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed
  # configure problem
  if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
    configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
