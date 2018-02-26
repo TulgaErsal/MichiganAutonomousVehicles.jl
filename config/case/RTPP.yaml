@@ -6,7 +6,7 @@ goal:
 
 misc:
   model: ThreeDOFv2              # function name
-  X0: [200.0, 0.0, 0.0, 0.0, 1.5701, 0.0, 0.0, 0.0]  # intial state (at the start of the simulation)
+  X0: [200.0, 0.0, 0.0, 0.0, 1.5701, 0.0, 0.0, 0.0]  # initial state (at the start of the simulation)
   Xlims: [111.,250.]              # limit for x
   Ylims: [-1., 140.]              # limit for Y
   tp: NaN                # prediction horizon (s)
@@ -49,20 +49,20 @@ tolerances:
   ix: 0.05
   iy: 0.05
   iv: 0.05
-  ir: 0.01
-  ipsi: 0.001
-  isa: 0.05
+  ir: 0.05
+  ipsi: 0.01
+  isa: 0.001
   iu: 0.05
-  iax: 1.0
+  iax: 0.05
   fx: 1.0
-  fy: 0.0
-  fv: 0.0
-  fr: 0.0
-  fpsi: 0.0
-  fsa: 0.0
-  fu: 0.0
-  fax: 0.0
-  
+  fy: 1.0
+  fv: NaN # NOTE YAML file turns these into strings and to avoid complication these are currently set manually
+  fr: NaN
+  fpsi: NaN
+  fsa: NaN
+  fu: NaN
+  fax: NaN
+
 solver:
   # settings for both KNITRO and IPOPT
   outlev: 0 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
