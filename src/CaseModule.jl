@@ -130,7 +130,7 @@ function case2dfs(c)
     dfs[:psii] = c["misc"]["X0"][5]
     dfs[:sai] = c["misc"]["X0"][6]
     dfs[:ui] = c["misc"]["X0"][7]
-    dfs[:ax] = c["misc"]["X0"][8]
+    dfs[:axi] = c["misc"]["X0"][8]
     dfs[:Xmax] = c["misc"]["Xlims"][1]
     dfs[:Xmin] = c["misc"]["Xlims"][2]
     dfs[:Ymin] = c["misc"]["Ylims"][1]
