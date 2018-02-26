@@ -3,6 +3,7 @@ isdefined(Base, :__precompile__) && __precompile__()
 module MAVs
 using NLOptControl
 using VehicleModels
+import YAML.load
 
 include("CaseModule.jl")
 using .CaseModule
@@ -20,22 +21,15 @@ using .AutonomousControl
 export
 
       # CaseModule.jl
-      Case,
-      defineCase,
-      setWeights!,
-      setMisc!,
-      setupResults,
-      case2dfs,  # currently not working
-      dataSet,
-      Obs,
-      defineObs,
-      setSolverSettings!,
-      defineTolerances,
+      setConfig,
+      case2dfs,
 
       # AutonomousControl.jl
       initializeAutonomousControl,
       updateAutoParams!,
-      avMpc
+      avMpc,
+
+      load # from YAML
 
       # SharedControl.jl
     #  initializeSharedControl!,
