@@ -6,20 +6,18 @@ goal:
 
 misc:
   model: ThreeDOFv2              # function name
-  X0: [200.0, 0.0, 0.0, 0.0, 1.5701, 0.0, 0.0, 0.0]  # initial state (at the start of the simulation)
+  X0: [200.0, 0.0, 0.0, 0.0, 1.5701, 0.0, 17.0, 0.0]  # initial state (at the start of the simulation)
   Xlims: [111.,250.]              # limit for x
   Ylims: [-1., 140.]              # limit for Y
   tp: NaN                # prediction horizon (s)
   tex: 0.5                # execution horizon (s)
-  max_cpu_time: 300.       # maximum time the algorithm has
   sm: 4.5                 # (m) distance to make sure we don't hit obstacle (for optimization)
   sm2: 3.                # (m) distance to make sure we don't hit obstacle (for crash checking)
   Lr: 50.                 # LiDAR range (m)
   L_rd: 5.               # relaxation distance to LiDAR range
   Nck: NaN                # number of points per interval
-  N: 18                  # number of points in :tm methods
-  solver: :Ipopt             # either :IPOPT or :KNITRO
-  max_iter: 60           # max evaluations in optimization
+  N: NaN                  # number of points in :tm methods
+  solver: NaN            # either :IPOPT or :KNITRO
   mpc_max_iter: 60       # an MPC parameter
   PredictX0: true          # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true            # fixed final time for predicting X0
@@ -28,7 +26,7 @@ misc:
   followDriver: NaN       # a bool to try and follow the driver
   followPath: NaN         # a bool to follow the path
   NF: NaN                 # number to subtract off the constraint check vector-> used for activeSafety mode so driver sees obstacle before autonomy
-  integrationScheme: :trapezoidal
+  integrationScheme: NaN
   tfMax: 10 # maximum final time in MPC
   EP: # small number to avoid singularities TODO move this from VehicleModels.jl
   ux: NaN  # for constant speed case
@@ -77,7 +75,7 @@ solver:
   infeastol: 1e-2 # (relative) tolerance used for declaring infeasibility of a model
   maxfevals: -1  # maximum number of function evaluations before termination
   maxtime_real: 30. # in seconds, the maximum allowable real time before termination
-  opttol: 5e-1   # final relative stopping tolerance for the KKT (optimality) error
+  opttol: 1e20  # final relative stopping tolerance for the KKT (optimality) error
   opttol_abs: 5e-1 # final absolute stopping tolerance for the KKT (optimality) error
   xtol: 1e-12  # optimization process will terminate if the relative change in all components of the solution point estimate is less than xtol for xtol_iters
   # settings for Ipopt

@@ -137,7 +137,7 @@ function case2dfs(c)
     dfs[:Ymax] = c["misc"]["Ylims"][2]
     dfs[:tp] = c["misc"]["tp"]
     dfs[:tex] = c["misc"]["tex"]
-    dfs[:maxCPU] = c["misc"]["max_cpu_time"]
+  #  dfs[:maxCPU] = c["misc"]["max_cpu_time"]
     dfs[:sms] = c["misc"]["sm"]
     dfs[:smh] = c["misc"]["sm2"]
     dfs[:Lr] = c["misc"]["Lr"]
