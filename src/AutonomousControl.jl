@@ -9,6 +9,7 @@ using .CaseModule
 export
       initializeAutonomousControl,
       updateAutoParams!,
+      solverConfig,
       avMpc
 
 """
@@ -83,11 +84,6 @@ function initializeAutonomousControl(c)
 
  #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed NOTE will not work properly
  # configure problem
- if c["solver"]["outlev"]==:empty
-   error("Call setSolverSettings!(c) before initializeAutonomousControl(c) \n
-          Note in the future setSolverSettings!(c) should be called in initializeAutonomousControl(c).\n
-          But doing this in the REPEL creates a constructor issue. ")
-end
  if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
    configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
  else

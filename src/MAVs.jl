@@ -28,6 +28,7 @@ export
       initializeAutonomousControl,
       updateAutoParams!,
       avMpc,
+      solverConfig,
 
       load # from YAML
 
