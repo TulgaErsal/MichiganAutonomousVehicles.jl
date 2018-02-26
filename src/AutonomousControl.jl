@@ -43,25 +43,27 @@ Date Create: 2/1/2017, Last Modified: 2/25/2018 \n
 """
 function initializeAutonomousControl(c)
 
- pa=Vpara(x_min=c["misc"]["Xlims"][1],x_max=c["misc"]["Xlims"][2],y_min=c["misc"]["Ylims"][1],y_max=c["misc"]["Ylims"][2],sr_min=-0.18,sr_max=0.18);
+ pa=Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
  @unpack_Vpara pa
- XF=[c["goal"]["x"], c["goal"]["y"], NaN, NaN, NaN, NaN, NaN, NaN];
+ XF=[copy(c["goal"]["x"]), copy(c["goal"]["y"]), NaN, NaN, NaN, NaN, NaN, NaN];
  XL=[x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN];
  XU=[x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN];
  CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
- n=define(numStates=8,numControls=2,X0=c["misc"]["X0"],XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
- n.s.tf_max=c["misc"]["tfMax"];
+ n=define(numStates=8,numControls=2,X0=copy(c["misc"]["X0"]),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+ n.s.tf_max=copy(c["misc"]["tfMax"]);
  n.params=[pa];   # vehicle parameters
 
  # set mpc parameters
- initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=c["misc"]["mpc_max_iter"]);
+ initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
  n.mpc.X0=[copy(c["misc"]["X0"])];
  n.mpc.plantEquations=ThreeDOFv2;
  n.mpc.modelEquations=ThreeDOFv2;
 
  # define tolerances
  X0_tol=[c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]];
- XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]];
+# XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]];
+ XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], NaN, NaN, NaN, NaN, NaN, NaN];
+
  defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol);
 
          # 1  2  3  4  5    6   7   8
