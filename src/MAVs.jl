@@ -1,4 +1,5 @@
-isdefined(Base, :__precompile__) && __precompile__()
+# isdefined(Base, :__precompile__) && __precompile__()
+# NOTE RobotOS does not seem to support precompile
 
 module MAVs
 using NLOptControl

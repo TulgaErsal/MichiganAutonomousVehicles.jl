@@ -2,6 +2,7 @@ module AutonomousControl
 
 using NLOptControl
 using VehicleModels
+using RobotOS
 
 include("CaseModule.jl")
 using .CaseModule
@@ -94,13 +95,30 @@ function initializeAutonomousControl(c)
  #################################
  # obstacle aviodance constraints
  ################################
- Q = size(c["obstacles"]["A"])[1]; # number of obstacles
- @NLparameter(n.mdl, a[i=1:Q] == copy(c["obstacles"]["A"][i]));
- @NLparameter(n.mdl, b[i=1:Q] == copy(c["obstacles"]["B"][i]));
- @NLparameter(n.mdl, X_0[i=1:Q] == copy(c["obstacles"]["xi"][i]));
- @NLparameter(n.mdl, Y_0[i=1:Q] == copy(c["obstacles"]["yi"][i]));
- @NLparameter(n.mdl, speed_x[i=1:Q] == copy(c["obstacles"]["ux"][i]));
- @NLparameter(n.mdl, speed_y[i=1:Q] == copy(c["obstacles"]["uy"][i]));
+ if false
+   Q = size(c["obstacles"]["A"])[1]; # number of obstacles
+   @NLparameter(n.mdl, a[i=1:Q] == copy(c["obstacles"]["A"][i]));
+   @NLparameter(n.mdl, b[i=1:Q] == copy(c["obstacles"]["B"][i]));
+   @NLparameter(n.mdl, X_0[i=1:Q] == copy(c["obstacles"]["xi"][i]));
+   @NLparameter(n.mdl, Y_0[i=1:Q] == copy(c["obstacles"]["yi"][i]));
+   @NLparameter(n.mdl, speed_x[i=1:Q] == copy(c["obstacles"]["ux"][i]));
+   @NLparameter(n.mdl, speed_y[i=1:Q] == copy(c["obstacles"]["uy"][i]));
+ else
+   rObs = RobotOS.get_param("obstacle/radius")
+   xObs = RobotOS.get_param("obstacle/x")
+   yObs = RobotOS.get_param("obstacle/y")
+   vxObs = RobotOS.get_param("obstacle/vx")
+   vyObs = RobotOS.get_param("obstacle/vy")
+
+   Q = length(rObs); # number of obstacles
+   @NLparameter(n.mdl, a[i=1:Q] == rObs[i]);
+   @NLparameter(n.mdl, b[i=1:Q] == rObs[i]);
+   @NLparameter(n.mdl, X_0[i=1:Q] == xObs[i]);
+   @NLparameter(n.mdl, Y_0[i=1:Q] == yObs[i]);
+   @NLparameter(n.mdl, speed_x[i=1:Q] == vxObs[i]);
+   @NLparameter(n.mdl, speed_y[i=1:Q] == vyObs[i]);
+ end
+
  obs_params=[a,b,X_0,Y_0,speed_x,speed_y,Q];
 
  # obstacle postion after the initial postion
