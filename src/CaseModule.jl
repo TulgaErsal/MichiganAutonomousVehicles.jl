@@ -102,35 +102,39 @@ function case2dfs(c)
 
     ####################
     # obstacles
-    dfs[:A] = string(c["obstacles"]["A"]')
-    dfs[:B] = string(c["obstacles"]["B"]')
-    dfs[:sX] = string(c["obstacles"]["ux"]')
-    dfs[:sy] = string(c["obstacles"]["uy"]')
-    dfs[:Xi] = string(c["obstacles"]["xi"]')
-    dfs[:Yi] = string(c["obstacles"]["yi"]')
-    dfs[:status] = string(c["obstacles"]["status"]')
+    dfs[:radius] = string(c["obstacle"]["radius"]')
+    dfs[:sX] = string(c["obstacle"]["ux"]')
+    dfs[:sy] = string(c["obstacle"]["uy"]')
+    dfs[:Xi] = string(c["obstacle"]["xi"]')
+    dfs[:Yi] = string(c["obstacle"]["yi"]')
+    dfs[:status] = string(c["obstacle"]["status"]')
     # obstacles
     ####################
 
     ###############
     # goal
     dfs[:xRef] = c["goal"]["x"]
-    dfs[:yRef] = c["goal"]["y"]
+    dfs[:yRef] = c["goal"]["yVal"]
     dfs[:psiRef] = c["goal"]["psi"]
     # goal
     ###############
 
     ###################
+    # X0 parameters
+    dfs[:xi] = c["X0"]["x"]
+    dfs[:yi] = c["X0"]["yVal"]
+    dfs[:vi] = c["X0"]["v"]
+    dfs[:ri] = c["X0"]["r"]
+    dfs[:psii] = c["X0"]["psi"]
+    dfs[:sai] = c["X0"]["sa"]
+    dfs[:ui] = c["X0"]["ux"]
+    dfs[:axi] = c["X0"]["ax"]
+    # X0 parameters
+    ###################
+
+    ###################
     # misc. parameters
     dfs[:model] = c["misc"]["model"]
-    dfs[:xi] = c["misc"]["X0"][1]
-    dfs[:yi] = c["misc"]["X0"][2]
-    dfs[:vi] = c["misc"]["X0"][3]
-    dfs[:ri] = c["misc"]["X0"][4]
-    dfs[:psii] = c["misc"]["X0"][5]
-    dfs[:sai] = c["misc"]["X0"][6]
-    dfs[:ui] = c["misc"]["X0"][7]
-    dfs[:axi] = c["misc"]["X0"][8]
     dfs[:Xmax] = c["misc"]["Xlims"][1]
     dfs[:Xmin] = c["misc"]["Xlims"][2]
     dfs[:Ymin] = c["misc"]["Ylims"][1]

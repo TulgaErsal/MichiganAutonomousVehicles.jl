@@ -20,22 +20,19 @@ Date Create: 2/15/2018, Last Modified: 3/12/2018 \n
 -------------------------------------------------------------------------------------\n
 """
 function solverConfig(c,useROS)
-  if !useROS
-    # settings for both KNITRO and IPOPT
-    outlev = (c["misc"]["solver"]==:Ipopt) ? :print_level : :outlev
-    feastol_abs = (c["misc"]["solver"]==:Ipopt) ? :constr_viol_tol : :feastol_abs
-    maxit = (c["misc"]["solver"]==:Ipopt) ? :max_iter : :maxit
-    maxtime_cpu = (c["misc"]["solver"]==:Ipopt) ? :max_cpu_time : :maxtime_cpu
-    #S1 = ((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit))
-   if c["misc"]["solver"] == :KNITRO
-     SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]))
-   elseif c["misc"]["solver"] == :Ipopt
-     #SS=(S1,(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
-     SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]),(:warm_start_init_point=>c["solver"]["warm_start_init_point"]),(:dual_inf_tol=>c["solver"]["dual_inf_tol"]),(:compl_inf_tol=>c["solver"]["compl_inf_tol"]),(:acceptable_tol=>c["solver"]["acceptable_tol"]),(:acceptable_constr_viol_tol=>c["solver"]["acceptable_constr_viol_tol"]),(:acceptable_dual_inf_tol=>c["solver"]["acceptable_dual_inf_tol"]),(:acceptable_compl_inf_tol=>c["solver"]["acceptable_compl_inf_tol"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]))
-   end
- else
-
+  # settings for both KNITRO and IPOPT
+  outlev = (c["misc"]["solver"]==:Ipopt) ? :print_level : :outlev
+  feastol_abs = (c["misc"]["solver"]==:Ipopt) ? :constr_viol_tol : :feastol_abs
+  maxit = (c["misc"]["solver"]==:Ipopt) ? :max_iter : :maxit
+  maxtime_cpu = (c["misc"]["solver"]==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  #S1 = ((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit))
+ if c["misc"]["solver"] == :KNITRO
+   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]))
+ elseif c["misc"]["solver"] == :Ipopt
+   #SS=(S1,(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
+   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]),(:warm_start_init_point=>c["solver"]["warm_start_init_point"]),(:dual_inf_tol=>c["solver"]["dual_inf_tol"]),(:compl_inf_tol=>c["solver"]["compl_inf_tol"]),(:acceptable_tol=>c["solver"]["acceptable_tol"]),(:acceptable_constr_viol_tol=>c["solver"]["acceptable_constr_viol_tol"]),(:acceptable_dual_inf_tol=>c["solver"]["acceptable_dual_inf_tol"]),(:acceptable_compl_inf_tol=>c["solver"]["acceptable_compl_inf_tol"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]))
  end
+
 return SS
 end
 
@@ -48,52 +45,43 @@ Date Create: 2/1/2017, Last Modified: 3/12/2018 \n
 """
 function initializeAutonomousControl(c,useROS)
 
-  # ensure that parameters are coming off of ROS server if useROS
- if useROS; c = NaN; end
-
- if !useROS
-   pa = Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
- else
-
+ if useROS
+   c = load(open(string(Pkg.dir("MAVs"),"/config/empty.yaml")))
+   c["misc"] = RobotOS.get_param("planner/nloptcontrol_planner/misc")
+   c["goal"] = RobotOS.get_param("case/goal")
+   c["X0"] = RobotOS.get_param("case/actual/X0")
+   if RobotOS.get_param("nloptcontrol_planner/flags/known_environment")
+     c["obstacle"] = RobotOS.get_param("case/actual/obstacle")
+   else
+     c["obstacle"] = RobotOS.get_param("case/assumed/obstacle")
+   end
+   c["weights"] = RobotOS.get_param("planner/nloptcontrol_planner/weights")
+   c["tolerances"] = RobotOS.get_param("planner/nloptcontrol_planner/tolerances")
+   c["solver"] = RobotOS.get_param("planner/nloptcontrol_planner/solver")
  end
+
+ pa = Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
  @unpack_Vpara pa  # NOTE get the vehicle parameters of YAML, and setting them for VehicleModels.jl and Chrono
- if !useROS
-   XF = [copy(c["goal"]["x"]), copy(c["goal"]["y"]), NaN, NaN, NaN, NaN, NaN, NaN];
- else
-
- end
-
+ XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN];
  XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN];
  XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN];
  CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
+ X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])];
 
- if !useROS
-   n = define(numStates=8,numControls=2,X0=copy(c["misc"]["X0"]),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
-   n.s.tf_max = copy(c["misc"]["tfMax"]);
- else
-
- end
+ n = define(numStates=8,numControls=2,X0=X0,XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+ n.s.tf_max = copy(c["misc"]["tfMax"]);
  n.params = [pa];   # vehicle parameters
 
  # set mpc parameters
- if !useROS
-   initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
-   n.mpc.X0 = [copy(c["misc"]["X0"])];
- else
-
- end
-
+ initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
+ n.mpc.X0 = [X0]
  n.mpc.plantEquations=ThreeDOFv2;
  n.mpc.modelEquations=ThreeDOFv2;
 
  # define tolerances
- if !useROS
-   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]];
+ X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]];
  # XF_tol=[c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]];
-   XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], NaN, NaN, NaN, NaN, NaN, NaN]; # NOTE YAML does not do will with NaN s. this is why the above line is commented out
- else
-
- end
+ XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], NaN, NaN, NaN, NaN, NaN, NaN]; # NOTE YAML does not do will with NaN s. this is why the above line is commented out
  defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol);
 
          # 1  2  3  4  5    6   7   8
@@ -113,39 +101,21 @@ function initializeAutonomousControl(c,useROS)
 
  #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed
  # configure problem
- if !useROS
-   if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
-     configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
-   else
-     configure!(n;(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
-   end
-else
-
-end
+ if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
+   configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
+ else
+   configure!(n;(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
+ end
  x = n.r.x[:,1];y = n.r.x[:,2];psi = n.r.x[:,5]; # pointers to JuMP variables
 
  #################################
  # obstacle aviodance constraints
  ################################
- if !useROS
-   rObs = copy(c["obstacles"]["A"])
-   xObs = copy(c["obstacles"]["xi"])
-   yObs = copy(c["obstacles"]["yi"])
-   vxObs = copy(c["obstacles"]["ux"])
-   vyObs = copy(c["obstacles"]["uy"])
- elseif RobotOS.get_param(string(RobotOS.get_param("plannerNamespace"),"/flags/known_environment"))
-   rObs = RobotOS.get_param("case/actual/obstacle/radius")
-   xObs = RobotOS.get_param("case/actual/obstacle/x0")
-   yObs = RobotOS.get_param("case/actual/obstacle/y0")
-   vxObs = RobotOS.get_param("case/actual/obstacle/vx")
-   vyObs = RobotOS.get_param("case/actual/obstacle/vy")
- else
-   rObs = RobotOS.get_param("case/assumed/obstacle/radius")
-   xObs = RobotOS.get_param("case/assumed/obstacle/x0")
-   yObs = RobotOS.get_param("case/assumed/obstacle/y0")
-   vxObs = RobotOS.get_param("case/assumed/obstacle/vx")
-   vyObs = RobotOS.get_param("case/assumed/obstacle/vy")
- end
+ rObs = copy(c["obstacle"]["radius"])
+ xObs = copy(c["obstacle"]["x0"])
+ yObs = copy(c["obstacle"]["y0"])
+ vxObs = copy(c["obstacle"]["vx"])
+ vyObs = copy(c["obstacle"]["vy"])
 
  Q = length(rObs); # number of obstacles
  @NLparameter(n.mdl, a[i=1:Q] == rObs[i]);
@@ -161,37 +131,27 @@ end
  Y_obs = @NLexpression(n.mdl, [j=1:Q,i=1:n.numStatePoints], Y_0[j] + speed_y[j]*n.tV[i]);
 
  # constraint on position
- if !useROS
-   obs_con = @NLconstraint(n.mdl, [j=1:Q,i=1:n.numStatePoints-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
- else
-
- end
+ obs_con = @NLconstraint(n.mdl, [j=1:Q,i=1:n.numStatePoints-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
  newConstraint!(n,obs_con,:obs_con);
 
  ####################
  # LiDAR constraints
  ###################
  # ensure that the final x and y states are near the LiDAR boundary
- if !useROS
-   @NLparameter(n.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2);
-   @NLparameter(n.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2);
- else
+ @NLparameter(n.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2);
+ @NLparameter(n.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2);
 
- end
  LiDAR_edge_high = @NLconstraint(n.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  <= LiDAR_param_1);
  LiDAR_edge_low = @NLconstraint(n.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  >= LiDAR_param_2);
  newConstraint!(n,LiDAR_edge_high,:LiDAR_edge_high);
  newConstraint!(n,LiDAR_edge_low,:LiDAR_edge_low);
 
 # constrain all state points to be within LiDAR boundary
- if !useROS
-   LiDAR_range = @NLconstraint(n.mdl, [j=1:n.numStatePoints-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
- else
+ LiDAR_range = @NLconstraint(n.mdl, [j=1:n.numStatePoints-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
 
- end
  newConstraint!(n,LiDAR_range,:LiDAR_range);
 
- if goalRange!(n,c,useROS)   # relax LiDAR boundary constraints
+ if goalRange!(n,c)   # relax LiDAR boundary constraints
     setvalue(LiDAR_param_1, 1e6)
     setvalue(LiDAR_param_2,-1e6)
  else                  # relax constraints on the final x and y position
@@ -202,26 +162,18 @@ end
  # objective function
  ####################
  # parameters
- if goalRange!(n,c,useROS)
+ if goalRange!(n,c)
   println("\n goal in range")
   @NLparameter(n.mdl, w_goal_param == 0.0)
   @NLparameter(n.mdl, w_psi_param == 0.0)
  else
-   if !useROS
-     @NLparameter(n.mdl, w_goal_param == c["weights"]["goal"])
-     @NLparameter(n.mdl, w_psi_param == c["weights"]["psi"])
-   else
-
-   end
+   @NLparameter(n.mdl, w_goal_param == c["weights"]["goal"])
+   @NLparameter(n.mdl, w_psi_param == c["weights"]["psi"])
  end
  obj_params = [w_goal_param,w_psi_param]
 
  # penalize distance to goal
- if !useROS
-   goal_obj = @NLexpression(n.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["y"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["y"])^2 + EP))
- else
-
- end
+ goal_obj = @NLexpression(n.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2 + EP))
 
  # penalize difference between final heading angle and angle relative to the goal NOTE currently this is broken becasue atan2() is not available
  #psi_frg=@NLexpression(n.mdl,asin(c.g.y_ref-y[end])/(acos(c.g.x_ref-x[end]) + EP) )
@@ -236,18 +188,11 @@ end
  #haf_obj=integrate!(n,:( $c.w.haf*( sin($c.g.psi_ref)*(x[j]-$c.g.x_ref) - cos($c.g.psi_ref)*(y[j]-$c.g.y_ref) )^2 ) )
  haf_obj = 0
  # penalize control effort
- if !useROS
-   ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
- else
+ ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
 
- end
 
  # overall objective function
- if !useROS
-   @NLobjective(n.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.tf + ce_obj )
- else
-
- end
+ @NLobjective(n.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.tf + ce_obj )
 
  #########################
  # initial optimization (s)
@@ -267,9 +212,9 @@ end
  n.params = [pa,obs_params,LiDAR_params,obj_params];
 
  #if !useROS; n.s.save = true; end
- n.s.save = true
+ n.s.save = true  # NOTE if running in parallel turn this off to save time
  n.s.cacheOnly = false
- n.s.evalConstraints = true # NOTE can turn back on to investigate infeasibilities
+ n.s.evalConstraints = false # NOTE turn back on to investigate infeasibilities
  return n
 end
 
@@ -279,10 +224,10 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 3/20/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function updateAutoParams!(n,c,useROS)
+function updateAutoParams!(n,c)
 
   # obstacle information-> only show if it is in range at the start TODO
-  goal_in_range = goalRange!(n,c,useROS)
+  goal_in_range = goalRange!(n,c)
   if goal_in_range # TODO make a flag that indicates this switch has been flipped
     println("goal is in range")
 
@@ -313,19 +258,18 @@ Date Create: 2/06/2018, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function avMpc(c)
- useROS = false
- n = initializeAutonomousControl(c,useROS);
-# driveStraight!(n)
+ n = initializeAutonomousControl(c,false);
+
  for ii = 1:n.mpc.max_iter
      println("Running model for the: ",n.r.eval_num + 1," time")
-     updateAutoParams!(n,c,useROS)                 # update model parameters
+     updateAutoParams!(n,c)                 # update model parameters
      status = autonomousControl!(n)                # rerun optimization
 
      # if the vehicle is very close to the goal sometimes the optimization returns with a small final time
      # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
      # expanded from the previous check and one final check is performed otherwise the run is failed
      if getvalue(n.tf) < 0.01 # assuming that the final time is a design variable, could check, but this module uses tf as a DV
-       if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-cc["goal"]["y"])^2)^0.5 < 4*n.XF_tol[1]
+       if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-cc["goal"]["yVal"])^2)^0.5 < 4*n.XF_tol[1]
           println("Expanded Goal Attained! \n"); n.mpc.goal_reached=true;
           break;
       else
@@ -333,7 +277,6 @@ function avMpc(c)
       end
     end
 
-    # n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex NOTE this is if driveStraight!(n)
      n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex  # external so that it can be updated easily in PathFollowing
      simPlant!(n)  # simulating out here even if it is not :Optimal so that we can look at final solution
      updateX0!(n)
@@ -348,7 +291,7 @@ function avMpc(c)
    if n.r.eval_num==n.mpc.max_iter
      warn(" \n This is the last itteration! \n i.e. the maximum number of iterations has been reached while closing the loop; consider increasing (max_iteration) \n")
    end
-   if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["y"])^2)^0.5 < 2*n.XF_tol[1]
+   if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 2*n.XF_tol[1]
       println("Goal Attained! \n"); n.mpc.goal_reached=true;
       break;
    end
@@ -360,18 +303,14 @@ function avMpc(c)
 end
 
 """
+#TODO use plant instead of mpc
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function goalRange!(n,c,useROS)
-  if !useROS
-    result = ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["y"])^2 )^0.5 < c["misc"]["Lr"]
-  else
-
-  end
- return result
+function goalRange!(n,c)
+  return ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
 end
 
 end # module
