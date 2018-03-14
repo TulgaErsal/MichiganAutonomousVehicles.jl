@@ -103,10 +103,10 @@ function case2dfs(c)
     ####################
     # obstacles
     dfs[:radius] = string(c["obstacle"]["radius"]')
-    dfs[:sX] = string(c["obstacle"]["ux"]')
-    dfs[:sy] = string(c["obstacle"]["uy"]')
-    dfs[:Xi] = string(c["obstacle"]["xi"]')
-    dfs[:Yi] = string(c["obstacle"]["yi"]')
+    dfs[:sX] = string(c["obstacle"]["vx"]')
+    dfs[:sy] = string(c["obstacle"]["vy"]')
+    dfs[:Xi] = string(c["obstacle"]["x0"]')
+    dfs[:Yi] = string(c["obstacle"]["y0"]')
     dfs[:status] = string(c["obstacle"]["status"]')
     # obstacles
     ####################
