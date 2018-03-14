@@ -68,13 +68,13 @@ function initializeAutonomousControl(c,useROS)
  CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
  X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])];
 
- n = define(numStates=8,numControls=2,X0=X0,XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+ n = define(numStates=8,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
  n.s.tf_max = copy(c["misc"]["tfMax"]);
  n.params = [pa];   # vehicle parameters
 
  # set mpc parameters
  initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
- n.mpc.X0 = [X0]
+ n.mpc.X0 = [copy(X0)]
  n.mpc.plantEquations=ThreeDOFv2;
  n.mpc.modelEquations=ThreeDOFv2;
 

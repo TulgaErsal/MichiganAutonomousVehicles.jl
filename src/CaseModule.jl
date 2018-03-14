@@ -107,7 +107,7 @@ function case2dfs(c)
     dfs[:sy] = string(c["obstacle"]["vy"]')
     dfs[:Xi] = string(c["obstacle"]["x0"]')
     dfs[:Yi] = string(c["obstacle"]["y0"]')
-    dfs[:status] = string(c["obstacle"]["status"]')
+    #dfs[:status] = string(c["obstacle"]["status"]')
     # obstacles
     ####################
 
