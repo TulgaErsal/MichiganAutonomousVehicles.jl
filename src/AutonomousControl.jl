@@ -19,7 +19,7 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/15/2018, Last Modified: 3/12/2018 \n
 -------------------------------------------------------------------------------------\n
 """
-function solverConfig(c,useROS)
+function solverConfig(c)
   # settings for both KNITRO and IPOPT
   outlev = (c["misc"]["solver"]==:Ipopt) ? :print_level : :outlev
   feastol_abs = (c["misc"]["solver"]==:Ipopt) ? :constr_viol_tol : :feastol_abs
@@ -37,28 +37,13 @@ return SS
 end
 
 """
-n=initializeAutonomousControl(c,useROS);
+n=initializeAutonomousControl(c);
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/1/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function initializeAutonomousControl(c,useROS)
-
- if useROS
-   c = load(open(string(Pkg.dir("MAVs"),"/config/empty.yaml")))
-   c["misc"] = RobotOS.get_param("planner/nloptcontrol_planner/misc")
-   c["goal"] = RobotOS.get_param("case/goal")
-   c["X0"] = RobotOS.get_param("case/actual/X0")
-   if RobotOS.get_param("nloptcontrol_planner/flags/known_environment")
-     c["obstacle"] = RobotOS.get_param("case/actual/obstacle")
-   else
-     c["obstacle"] = RobotOS.get_param("case/assumed/obstacle")
-   end
-   c["weights"] = RobotOS.get_param("planner/nloptcontrol_planner/weights")
-   c["tolerances"] = RobotOS.get_param("planner/nloptcontrol_planner/tolerances")
-   c["solver"] = RobotOS.get_param("planner/nloptcontrol_planner/solver")
- end
+function initializeAutonomousControl(c)
 
  pa = Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
  @unpack_Vpara pa  # NOTE get the vehicle parameters of YAML, and setting them for VehicleModels.jl and Chrono
@@ -102,9 +87,9 @@ function initializeAutonomousControl(c,useROS)
  #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed
  # configure problem
  if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
-   configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
+   configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
  else
-   configure!(n;(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,useROS)))
+   configure!(n;(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
  end
  x = n.r.x[:,1];y = n.r.x[:,2];psi = n.r.x[:,5]; # pointers to JuMP variables
 
@@ -206,12 +191,11 @@ function initializeAutonomousControl(c,useROS)
   if status==:Optimal; break; end
  end
 
-# defineSolver!(n,solverConfig(c,useROS)) # modifying solver settings NOTE currently not in use
+# defineSolver!(n,solverConfig(c)) # modifying solver settings NOTE currently not in use
 
          #  1      2          3          4
  n.params = [pa,obs_params,LiDAR_params,obj_params];
 
- #if !useROS; n.s.save = true; end
  n.s.save = true  # NOTE if running in parallel turn this off to save time
  n.s.cacheOnly = false
  n.s.evalConstraints = false # NOTE turn back on to investigate infeasibilities
