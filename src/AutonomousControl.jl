@@ -253,7 +253,7 @@ function avMpc(c)
      # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
      # expanded from the previous check and one final check is performed otherwise the run is failed
      if getvalue(n.tf) < 0.01 # assuming that the final time is a design variable, could check, but this module uses tf as a DV
-       if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-cc["goal"]["yVal"])^2)^0.5 < 4*n.XF_tol[1]
+       if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 4*n.XF_tol[1]
           println("Expanded Goal Attained! \n"); n.mpc.goal_reached=true;
           break;
       else
