@@ -252,13 +252,13 @@ end
  #########################
  # initial optimization (s)
  ########################
- n.s.save = false; n.s.MPC = false; n.s.evalConstraints = false;
+ n.s.save = false; n.s.MPC = false; n.s.evalConstraints = false; n.s.cacheOnly = true;
  if n.s.save
   warn("saving initial optimization results where functions where cashed!")
  end
  for k in 1:3
-  optimize!(n);
-  if n.r.status==:Optimal; break; end
+  status = optimize!(n);
+  if status==:Optimal; break; end
  end
 
 # defineSolver!(n,solverConfig(c,useROS)) # modifying solver settings NOTE currently not in use
@@ -266,9 +266,10 @@ end
          #  1      2          3          4
  n.params = [pa,obs_params,LiDAR_params,obj_params];
 
- if !useROS; n.s.save = true; end
-
- # n.s.evalConstraints = true # NOTE can turn back on to investigate infeasibilities
+ #if !useROS; n.s.save = true; end
+ n.s.save = true
+ n.s.cacheOnly = false
+ n.s.evalConstraints = true # NOTE can turn back on to investigate infeasibilities
  return n
 end
 
@@ -314,10 +315,10 @@ Date Create: 2/06/2018, Last Modified: 3/12/2018 \n
 function avMpc(c)
  useROS = false
  n = initializeAutonomousControl(c,useROS);
- driveStraight!(n)
+# driveStraight!(n)
  for ii = 1:n.mpc.max_iter
-     println("Running model for the: ",n.r.eval_num," time")
-     updateAutoParams!(n,c,useROS)                        # update model parameters
+     println("Running model for the: ",n.r.eval_num + 1," time")
+     updateAutoParams!(n,c,useROS)                 # update model parameters
      status = autonomousControl!(n)                # rerun optimization
 
      # if the vehicle is very close to the goal sometimes the optimization returns with a small final time
@@ -332,8 +333,10 @@ function avMpc(c)
       end
     end
 
+    # n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex NOTE this is if driveStraight!(n)
      n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex  # external so that it can be updated easily in PathFollowing
      simPlant!(n)  # simulating out here even if it is not :Optimal so that we can look at final solution
+     updateX0!(n)
 
      if n.r.status==:Optimal || n.r.status==:Suboptimal || n.r.status==:UserLimit
        println("Passing Optimized Signals to 3DOF Vehicle Model");
