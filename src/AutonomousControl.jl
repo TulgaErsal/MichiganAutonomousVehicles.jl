@@ -8,11 +8,20 @@ include("CaseModule.jl")
 using .CaseModule
 
 export
-      initializeAutonomousControl,
+      initializeThreeDOFv2,
+      initializeKinematicBicycle,
       updateAutoParams!,
       solverConfig,
-      avMpc
+      avMpc,
+      OptData
 
+type OptData
+      t
+      sa
+      ax
+      obj
+      X0
+end
 """
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
@@ -37,13 +46,13 @@ return SS
 end
 
 """
-n=initializeAutonomousControl(c);
+n = initializeThreeDOFv2(c);
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/1/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function initializeAutonomousControl(c)
+function initializeThreeDOFv2(c)
 
  pa = Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
  @unpack_Vpara pa  # NOTE get the vehicle parameters of YAML, and setting them for VehicleModels.jl and Chrono
@@ -203,6 +212,70 @@ function initializeAutonomousControl(c)
 end
 
 """
+initializeKinematicBicycle(n,c,pa);
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 3/28/2017, Last Modified: 3/16/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+
+function initializeKinematicBicycle(n,c,pa;x_min::Float64=0.0)  # can intially pass different x_min
+
+  # initialize
+
+  # define
+  pa = VparaKB(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]));
+
+#  @unpack_VparaKB pa # other vehicle model's inital parameters
+  @unpack la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max = d
+
+  @pack pa = la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max
+  X0 = [x0_,y0_,psi0_,u0_];
+  XF = [NaN,NaN,NaN,NaN];
+
+  XL = [x_min,y_min,psi_min,u_min];
+  XU = [x_max,y_max,psi_max,u_max];
+  CL = [sa_min,-2.0];
+  CU = [sa_max,2.5];
+  define(KinematicBicycle;numStates=4,numControls=2,X0=X0,XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+
+  # build
+  configure!(n1,Nck=n.Nck;(:integrationScheme => n.integrationScheme),(:finalTimeDV => true))
+
+  mdl=defineSolver!(n,c);
+
+
+
+  # setup OCP
+  params1 = [VparaKB()];   # simple vehicle parameters TODO--> are they the same?
+  r1=OCPdef!(mdl1,n1,s1,params1);
+  @NLobjective(mdl1, Min,  n1.tf + (r1.x[end,1]-c.x_ref)^2 + (r1.x[end,2]-c.y_ref)^2);
+
+  # obstacles
+  Q = size(c.A)[1]; # number of obstacles
+  @NLparameter(mdl1, a[i=1:Q] == c.A[i]);
+  @NLparameter(mdl1, b[i=1:Q] == c.B[i]);
+  @NLparameter(mdl1, X_0[i=1:Q] == c.X0_obs[i]);
+  @NLparameter(mdl1, Y_0[i=1:Q] == c.Y0_obs[i]);
+  @NLparameter(mdl1, speed_x[i=1:Q] == c.s_x[i]);
+  @NLparameter(mdl1, speed_y[i=1:Q] == c.s_y[i]);
+
+  # obstacle postion after the intial postion
+  X_obs=@NLexpression(mdl1, [j=1:Q,i=1:n1.numStatePoints], X_0[j] + speed_x[j]*n1.tV[i]);
+  Y_obs=@NLexpression(mdl1, [j=1:Q,i=1:n1.numStatePoints], Y_0[j] + speed_y[j]*n1.tV[i]);
+
+  # constraint on position
+  obs_con=@NLconstraint(mdl1, [j=1:Q,i=1:n1.numStatePoints-1], 1 <= ((r1.x[(i+1),1]-X_obs[j,i])^2)/((a[j]+c.sm)^2) + ((r1.x[(i+1),2]-Y_obs[j,i])^2)/((b[j]+c.sm)^2));
+  newConstraint!(r1,obs_con,:obs_con);
+
+  # solve
+  optimize!(mdl1,n1,r1,s1)
+
+  return mdl1, n1, r1
+end
+
+
+"""
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 3/20/2017, Last Modified: 3/12/2018 \n
@@ -242,7 +315,14 @@ Date Create: 2/06/2018, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function avMpc(c)
- n = initializeAutonomousControl(c,false);
+
+if c["misc"]["model"]==:ThreeDOFv2
+ n = initializeDBM(c);
+elseif c["misc"]["model"]==:KinematicBicycle
+  n = initializeKinematicBicycle(c);
+else
+  error("c["misc"]["model"] needs to be set to either; :ThreeDOFv2 || :KinematicBicycle ")
+end
 
  for ii = 1:n.mpc.max_iter
      println("Running model for the: ",n.r.eval_num + 1," time")
@@ -287,7 +367,7 @@ function avMpc(c)
 end
 
 """
-#TODO use plant instead of mpc
+# TODO use plant instead of mpc
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
@@ -295,6 +375,28 @@ Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
 """
 function goalRange!(n,c)
   return ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
+end
+
+
+"""
+# just some potentially useful stuff
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 3/12/2018, Last Modified: 3/12/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+function misc()
+# To find fieldnames
+r = ()
+for i in 1:length(fieldnames(p))
+      r = (r...,fieldnames(p)[i])
+end
+#la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max,x0_,y0_,psi0_,u0_,ax0_
+# KB
+@unpack la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max = d
+
+# To find fieldnames
+
 end
 
 end # module
