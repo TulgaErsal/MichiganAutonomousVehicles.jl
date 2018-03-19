@@ -1,3 +1,5 @@
+#isdefined(Base, :__precompile__) && __precompile__()
+
 module AutonomousControl
 
 using NLOptControl
@@ -242,7 +244,7 @@ Date Create: 2/06/2018, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function avMpc(c)
- n = initializeAutonomousControl(c,false);
+ n = initializeAutonomousControl(c);
 
  for ii = 1:n.mpc.max_iter
      println("Running model for the: ",n.r.eval_num + 1," time")
