@@ -1,5 +1,5 @@
 isdefined(Base, :__precompile__) && __precompile__()
-s
+
 module MAVs
 using NLOptControl
 using VehicleModels
