@@ -1,6 +1,5 @@
-# isdefined(Base, :__precompile__) && __precompile__()
-# NOTE RobotOS does not seem to support precompile
-
+isdefined(Base, :__precompile__) && __precompile__()
+s
 module MAVs
 using NLOptControl
 using VehicleModels
