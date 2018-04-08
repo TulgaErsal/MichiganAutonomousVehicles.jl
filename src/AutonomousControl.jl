@@ -56,13 +56,14 @@ Date Create: 2/1/2017, Last Modified: 3/12/2018 \n
 """
 function initializeThreeDOFv2(c)
 
- pa = Vpara(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sr_min=-0.18,sr_max=0.18);
- @unpack_Vpara pa  # NOTE get the vehicle parameters of YAML, and setting them for VehicleModels.jl and Chrono
- XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN];
- XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN];
- XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN];
- CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
- X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])];
+  pa = Vpara(m=copy(c["vehicle"][:m]),Izz=copy(c["vehicle"][:Izz]), la=copy(c["vehicle"][:la]), lb=copy(c["vehicle"][:lb]), FzF0=copy(c["vehicle"][:FzF0]), FzR0=copy(c["vehicle"][:FzR0]), dFzx_coeff=copy(c["vehicle"][:dFzx_coeff]), KZX=copy(c["vehicle"][:KZX]), KZYR=copy(c["vehicle"][:KZYR]), AXC=copy(c["vehicle"][:AXC]),x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),sr_min=copy(c["vehicle"][:sr_min]),sr_max=copy(c["vehicle"][:sr_max]),jx_min=copy(c["vehicle"][:jx_min]),jx_max=copy(c["vehicle"][:jx_max]),FZ0=copy(c["vehicle"][:FZ0]),PCY1=copy(c["vehicle"][:PCY1]),PDY1=copy(c["vehicle"][:PDY1]),PDY2=copy(c["vehicle"][:PDY2]),PEY1=copy(c["vehicle"][:PEY1]),PEY2=copy(c["vehicle"][:PEY2]),PEY3=copy(c["vehicle"][:PEY3]),PKY1=copy(c["vehicle"][:PKY1]),PKY2=copy(c["vehicle"][:PKY2]),PHY1=copy(c["vehicle"][:PHY1]),PHY2=copy(c["vehicle"][:PHY2]),PVY1=copy(c["vehicle"][:PVY1]),PVY2=copy(c["vehicle"][:PVY2]),Caf=copy(c["vehicle"][:Caf]),Car=copy(c["vehicle"][:Car]),Fy_min=copy(c["vehicle"][:Fy_min]),Fy_max=copy(c["vehicle"][:Fy_max]),Fz_min=copy(c["vehicle"][:Fz_min]),Fz_off=copy(c["vehicle"][:Fz_off]),EP=copy(c["misc"]["EP"]))
+
+  @unpack_Vpara pa
+  XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN];
+  XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN];
+  XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN];
+  CL = [sr_min, jx_min]; CU = [sr_max, jx_max];
+  X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])];
 
  n = define(numStates=8,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
  n.s.tf_max = copy(c["misc"]["tfMax"]);
@@ -225,32 +226,25 @@ function initializeKinematicBicycle(n,c,pa;x_min::Float64=0.0)  # can intially p
 
   # initialize
 
-  # define
-  pa = VparaKB(x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]));
-
-#  @unpack_VparaKB pa # other vehicle model's inital parameters
-  @unpack la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max = d
-
-  @pack pa = la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max
-  X0 = [x0_,y0_,psi0_,u0_];
-  XF = [NaN,NaN,NaN,NaN];
-
-  XL = [x_min,y_min,psi_min,u_min];
-  XU = [x_max,y_max,psi_max,u_max];
-  CL = [sa_min,-2.0];
-  CU = [sa_max,2.5];
+  # define not passing: ,x0_,y0_,psi0_,u0_,ax0_
+  pa = VparaKB(la=copy(c["vehicle"][:la]),lb=copy(c["vehicle"][:lb]),x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),ax_min=copy(c["vehicle"][:ax_min]),ax_max=copy(c["vehicle"][:ax_max]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]))
+  @unpack_VparaKB pa
+  X0 = [x0_,y0_,psi0_,u0_]
+  XF = [NaN,NaN,NaN,NaN]
+  XL = [x_min,y_min,psi_min,u_min]
+  XU = [x_max,y_max,psi_max,u_max]
+  CL = [sa_min,ax_min]
+  CU = [sa_max,ax_max]
   define(KinematicBicycle;numStates=4,numControls=2,X0=X0,XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
 
   # build
   configure!(n1,Nck=n.Nck;(:integrationScheme => n.integrationScheme),(:finalTimeDV => true))
 
-  mdl=defineSolver!(n,c);
-
-
+  mdl = defineSolver!(n,c)
 
   # setup OCP
-  params1 = [VparaKB()];   # simple vehicle parameters TODO--> are they the same?
-  r1=OCPdef!(mdl1,n1,s1,params1);
+  params1 = [pa]
+  r1=OCPdef!(mdl1,n1,s1,params1)
   @NLobjective(mdl1, Min,  n1.tf + (r1.x[end,1]-c.x_ref)^2 + (r1.x[end,2]-c.y_ref)^2);
 
   # obstacles
@@ -323,7 +317,7 @@ if c["misc"]["model"]==:ThreeDOFv2
 elseif c["misc"]["model"]==:KinematicBicycle
   n = initializeKinematicBicycle(c);
 else
-  error("c["misc"]["model"] needs to be set to either; :ThreeDOFv2 || :KinematicBicycle ")
+  error("c[misc][model] needs to be set to either; :ThreeDOFv2 || :KinematicBicycle ")
 end
 
  for ii = 1:n.mpc.max_iter
@@ -380,25 +374,25 @@ function goalRange!(n,c)
 end
 
 
-"""
-# just some potentially useful stuff
---------------------------------------------------------------------------------------\n
-Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 3/12/2018, Last Modified: 3/12/2018 \n
---------------------------------------------------------------------------------------\n
-"""
-function misc()
+#"""
+## just some potentially useful stuff
+#--------------------------------------------------------------------------------------\n
+#Author: Huckleberry Febbo, Graduate Student, University of Michigan
+#Date Create: 3/12/2018, Last Modified: 3/12/2018 \n
+#--------------------------------------------------------------------------------------\n
+#"""
+#function misc()
 # To find fieldnames
-r = ()
-for i in 1:length(fieldnames(p))
-      r = (r...,fieldnames(p)[i])
-end
+#r = ()
+#for i in 1:length(fieldnames(p))
+#      r = (r...,fieldnames(p)[i])
+#end
 #la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max,x0_,y0_,psi0_,u0_,ax0_
 # KB
-@unpack la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max = d
+#@unpack la,lb,x_min,x_max,y_min,y_max,psi_min,psi_max,u_min,u_max,ax_min,ax_max,sa_min,sa_max = d
 
 # To find fieldnames
 
-end
+#end
 
 end # module
