@@ -12,6 +12,8 @@ addons:
         - gfortran
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.add("VehicleModels")'
+  - julia -e 'Pkg.add("NLOptControl")'
   - julia -e 'Pkg.checkout("NLOptControl")'
   - julia -e 'Pkg.checkout("VehicleModels")'
   - julia -e 'Pkg.add("Ipopt")'
