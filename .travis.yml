@@ -1,15 +1,31 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-sudo: required
-os:
-  - linux
 julia:
   - 0.6
+sudo: required
+dist: trusty
+os:
+  - linux
+dist: trusty
 notifications:
   email: false
 addons:
       apt_packages:
         - gfortran
+before_install:
+  - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
+  - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
+  - sudo apt-get update
+  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs
+  - sudo rosdep init
+  - rosdep update
+before_script:
+  - export PATH=/usr/bin:$PATH
+  - source /opt/ros/indigo/setup.sh
+  - roscore &
+  - sleep 5
+  - python test/echonode.py &
+  - sleep 5
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.add("VehicleModels")'
@@ -20,3 +36,8 @@ script:
   - julia -e 'Pkg.build("Ipopt")'
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.test("MAVs")'
+
+after_script:
+  - killall roscore
+  - killall python
+  - sleep 5

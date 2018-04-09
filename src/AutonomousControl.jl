@@ -432,7 +432,7 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 function initOpt!(n)
   n.s.save = false; n.s.MPC = false; n.s.evalConstraints = false; n.s.cacheOnly = true;
   if n.s.save
-   warn("saving initial optimization results where functions where cashed!")
+   warn("saving initial optimization results where functions where cached!")
   end
   for k in 1:3 # initial optimization (s)
    status = optimize!(n);
