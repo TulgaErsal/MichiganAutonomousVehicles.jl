@@ -1,28 +1,29 @@
 misc:
-  model: ThreeDOFv2              # function name
-  Xlims: [111.,250.]              # limit for x
-  Ylims: [-1., 140.]              # limit for Y
+  model: NaN             # function name
+  Xlims: [111.,250.]     # limit for x
+  Ylims: [-1., 140.]     # limit for Y
   tp: NaN                # prediction horizon (s)
-  tex: 0.5                # execution horizon (s)
-  sm: 4.5                 # (m) distance to make sure we don't hit obstacle (for optimization)
+  tex: 0.5               # execution horizon (s)
+  sm: 4.5                # (m) distance to make sure we don't hit obstacle (for optimization)
   sm2: 3.                # (m) distance to make sure we don't hit obstacle (for crash checking)
-  Lr: 50.                 # LiDAR range (m)
+  Lr: 50.                # LiDAR range (m)
   L_rd: 5.               # relaxation distance to LiDAR range
-  Nck: NaN                # number of points per interval
-  N: NaN                  # number of points in :tm methods
+  Nck: NaN               # number of points per interval
+  N: NaN                 # number of points in :tm methods
   solver: NaN            # either :IPOPT or :KNITRO
   mpc_max_iter: 60       # an MPC parameter
-  PredictX0: true          # if the state that the vehicle will be at when the optimization is finished is to be predicted
-  FixedTp: true            # fixed final time for predicting X0
-  finalTimeDV: true        # bool to indicate if the final time is a variable
-  activeSafety: NaN       # a bool if the system is only used to avoid collisions with obstacles
-  followDriver: NaN       # a bool to try and follow the driver
-  followPath: NaN         # a bool to follow the path
-  NF: NaN                 # number to subtract off the constraint check vector-> used for activeSafety mode so driver sees obstacle before autonomy
+  PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
+  FixedTp: true          # fixed final time for predicting X0
+  finalTimeDV: true      # bool to indicate if the final time is a variable
+  activeSafety: NaN      # a bool if the system is only used to avoid collisions with obstacles
+  followDriver: NaN      # a bool to try and follow the driver
+  followPath: NaN        # a bool to follow the path
+  NF: NaN                # number to subtract off the constraint check vector-> used for activeSafety mode so driver sees obstacle before autonomy
   integrationScheme: NaN
   tfMax: 10 # maximum final time in MPC
-  EP: NaN # small number to avoid singularities TODO move this from VehicleModels.jl
-  ux: NaN  # for constant speed case
+  EP: 0.1   # small number to avoid singularities TODO move this from VehicleModels.jl
+  ux: NaN   # for constant speed case
+
 weights:
   goal: 100.
   psi: 0.01

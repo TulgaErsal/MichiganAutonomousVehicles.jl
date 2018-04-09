@@ -29,6 +29,7 @@ export
       updateAutoParams!,
       avMpc,
       solverConfig,
+      fixYAML,
 
       load # from YAML
 

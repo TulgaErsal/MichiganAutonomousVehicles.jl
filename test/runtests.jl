@@ -6,6 +6,4 @@ using DataFrames
 
 using Base.Test
 
-# Moving Obstacle Avoidance Tests
-include("moving_obstacles.jl")
-@test goal_in_lidar()
+include("RTPP.jl")
