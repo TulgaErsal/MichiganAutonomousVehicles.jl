@@ -12,7 +12,9 @@ addons:
         - gfortran
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'Pkg.checkout("NLOptControl")'
+  - julia -e 'Pkg.checkout("VehicleModels")'
   - julia -e 'Pkg.add("Ipopt")'
   - julia -e 'Pkg.build("Ipopt")'
+  - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.test("MAVs")'
