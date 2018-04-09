@@ -7,11 +7,14 @@ dist: trusty
 os:
   - linux
 dist: trusty
+
 notifications:
   email: false
+
 addons:
       apt_packages:
         - gfortran
+
 before_install:
   - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
   - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
@@ -19,6 +22,7 @@ before_install:
   - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs
   - sudo rosdep init
   - rosdep update
+
 before_script:
   - export PATH=/usr/bin:$PATH
   - source /opt/ros/indigo/setup.sh
@@ -26,6 +30,7 @@ before_script:
   - sleep 5
   - python test/echonode.py &
   - sleep 5
+
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.add("VehicleModels")'
