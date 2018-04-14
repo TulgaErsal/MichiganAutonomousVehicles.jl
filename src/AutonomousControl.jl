@@ -76,8 +76,8 @@ function initializeAutonomousControl(c)
  else
    error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle "))
  end
- n.s.tf_max = copy(c["misc"]["tfMax"])
- n.params = [pa]   # vehicle parameters
+ n.ocp.tfMax = copy(c["misc"]["tfMax"])
+ n.ocp.params = [pa]   # vehicle parameters
 
  # set mpc parameters
  initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
@@ -137,7 +137,7 @@ function initializeAutonomousControl(c)
  LiDAR_params = lidarConstraints!(n,c)
  obj_params = objFunc!(n,c,tire_expr)
             #  1      2          3          4
- n.params = [pa,obs_params,LiDAR_params,obj_params]
+ n.ocp.params = [pa,obs_params,LiDAR_params,obj_params]
  initOpt!(n)
  return n
 end
@@ -157,17 +157,17 @@ function updateAutoParams!(n,c)
 
     # enforce final state constraints on x and y position
     for st=1:2;
-      setRHS(n.r.xf_con[st,1], +(n.XF[st]+n.XF_tol[st]));
-      setRHS(n.r.xf_con[st,2], -(n.XF[st]-n.XF_tol[st]));
+      setRHS(n.r.ocp.xfCon[st,1], +(n.XF[st]+n.ocp.XF_tol[st]));
+      setRHS(n.r.ocp.xfCon[st,2], -(n.XF[st]-n.ocp.XF_tol[st]));
     end
 
     # relax LiDAR constraints
-    setvalue(n.params[3][1], 1e6)
-    setvalue(n.params[3][2],-1e6)
+    setvalue(n.ocp.params[3][1], 1e6)
+    setvalue(n.ocp.params[3][2],-1e6)
 
     # remove terms in cost function
-    setvalue(n.params[4][1],0.0)
-    setvalue(n.params[4][2],0.0)
+    setvalue(n.ocp.params[4][1],0.0)
+    setvalue(n.ocp.params[4][2],0.0)
   end
   #NOTE assuming it is not going in and out of range
 
@@ -203,15 +203,15 @@ function avMpc(c)
   # if the vehicle is very close to the goal sometimes the optimization returns with a small final time
   # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
   # expanded from the previous check and one final check is performed otherwise the run is failed
-  if getvalue(n.tf) < 0.01
+  if getvalue(n.ocp.tf) < 0.01
     if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 2*c["goal"]["tol"]
     println("Expanded Goal Attained! \n"); n.mpc.goal_reached=true;
     break;
     else
     warn("Expanded Goal Not Attained! -> stopping simulation! \n"); break;
     end
-  elseif getvalue(n.tf) < 0.5 # if the vehicle is near the goal => tf may be less then 0.5 s
-    tf = (n.r.eval_num-1)*n.mpc.tex + getvalue(n.tf)
+  elseif getvalue(n.ocp.tf) < 0.5 # if the vehicle is near the goal => tf may be less then 0.5 s
+    tf = (n.r.eval_num-1)*n.mpc.tex + getvalue(n.ocp.tf)
   else
     tf = (n.r.eval_num)*n.mpc.tex
   end
@@ -319,22 +319,22 @@ function obstacleAvoidanceConstraints!(n,c)
   vyObs = copy(c["obstacle"]["vy"])
 
   Q = length(rObs); # number of obstacles
-  @NLparameter(n.mdl, a[i=1:Q] == rObs[i]);
-  @NLparameter(n.mdl, b[i=1:Q] == rObs[i]);
-  @NLparameter(n.mdl, X_0[i=1:Q] == xObs[i]);
-  @NLparameter(n.mdl, Y_0[i=1:Q] == yObs[i]);
-  @NLparameter(n.mdl, speed_x[i=1:Q] == vxObs[i]);
-  @NLparameter(n.mdl, speed_y[i=1:Q] == vyObs[i]);
+  @NLparameter(n.ocp.mdl, a[i=1:Q] == rObs[i]);
+  @NLparameter(n.ocp.mdl, b[i=1:Q] == rObs[i]);
+  @NLparameter(n.ocp.mdl, X_0[i=1:Q] == xObs[i]);
+  @NLparameter(n.ocp.mdl, Y_0[i=1:Q] == yObs[i]);
+  @NLparameter(n.ocp.mdl, speed_x[i=1:Q] == vxObs[i]);
+  @NLparameter(n.ocp.mdl, speed_y[i=1:Q] == vyObs[i]);
   obs_params = [a,b,X_0,Y_0,speed_x,speed_y,Q];
 
   # obstacle postion after the initial postion
-  X_obs = @NLexpression(n.mdl, [j=1:Q,i=1:n.numStatePoints], X_0[j] + speed_x[j]*n.tV[i]);
-  Y_obs = @NLexpression(n.mdl, [j=1:Q,i=1:n.numStatePoints], Y_0[j] + speed_y[j]*n.tV[i]);
+  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints], X_0[j] + speed_x[j]*n.tV[i]);
+  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints], Y_0[j] + speed_y[j]*n.tV[i]);
 
   # constraint on position
-  x = n.r.x[:,1];y = n.r.x[:,2]; # pointers to JuMP variables
+  x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
 
-  obs_con = @NLconstraint(n.mdl, [j=1:Q,i=1:n.numStatePoints-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
+  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
   newConstraint!(n,obs_con,:obs_con);
 
   return obs_params
@@ -348,17 +348,17 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 """
 function lidarConstraints!(n,c)
   # ensure that the final x and y states are near the LiDAR boundary
-  @NLparameter(n.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2);
-  @NLparameter(n.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2);
+  @NLparameter(n.ocp.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2);
+  @NLparameter(n.ocp.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2);
 
-  x = n.r.x[:,1];y = n.r.x[:,2]; # pointers to JuMP variables
-  LiDAR_edge_high = @NLconstraint(n.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  <= LiDAR_param_1);
-  LiDAR_edge_low = @NLconstraint(n.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  >= LiDAR_param_2);
+  x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
+  LiDAR_edge_high = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  <= LiDAR_param_1);
+  LiDAR_edge_low = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  >= LiDAR_param_2);
   newConstraint!(n,LiDAR_edge_high,:LiDAR_edge_high);
   newConstraint!(n,LiDAR_edge_low,:LiDAR_edge_low);
 
  # constrain all state points to be within LiDAR boundary
-  LiDAR_range = @NLconstraint(n.mdl, [j=1:n.numStatePoints-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
+  LiDAR_range = @NLconstraint(n.ocp.mdl, [j=1:n.numStatePoints-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
 
   newConstraint!(n,LiDAR_range,:LiDAR_range);
 
@@ -366,7 +366,7 @@ function lidarConstraints!(n,c)
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
   else                  # relax constraints on the final x and y position
-      for st=1:2;for k in 1:2; setRHS(n.r.xf_con[st,k], 1e6); end; end
+      for st=1:2;for k in 1:2; setRHS(n.r.ocp.xfCon[st,k], 1e6); end; end
   end
   LiDAR_params = [LiDAR_param_1,LiDAR_param_2]
   return LiDAR_params
@@ -382,30 +382,30 @@ function objFunc!(n,c,tire_expr)
   # parameters
   if goalRange!(n,c)
    println("\n goal in range")
-   @NLparameter(n.mdl, w_goal_param == 0.0)
-   @NLparameter(n.mdl, w_psi_param == 0.0)
+   @NLparameter(n.ocp.mdl, w_goal_param == 0.0)
+   @NLparameter(n.ocp.mdl, w_psi_param == 0.0)
   else
-    @NLparameter(n.mdl, w_goal_param == c["weights"]["goal"])
-    @NLparameter(n.mdl, w_psi_param == c["weights"]["psi"])
+    @NLparameter(n.ocp.mdl, w_goal_param == c["weights"]["goal"])
+    @NLparameter(n.ocp.mdl, w_psi_param == c["weights"]["psi"])
   end
   obj_params = [w_goal_param,w_psi_param]
 
   # penalize distance to goal
-  x = n.r.x[:,1];y = n.r.x[:,2]; # pointers to JuMP variables
+  x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)
-    psi = n.r.x[:,5];
+    psi = n.r.ocp.x[:,5];
   elseif isequal(c["misc"]["model"],:KinematicBicycle)
-    psi = n.r.x[:,3];
+    psi = n.r.ocp.x[:,3];
   end
 
-  goal_obj = @NLexpression(n.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2 + c["misc"]["EP"]))
+  goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2 + c["misc"]["EP"]))
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
     # penalize difference between final heading angle and angle relative to the goal NOTE currently this is broken becasue atan2() is not available
-    #psi_frg=@NLexpression(n.mdl,asin(c.g.y_ref-y[end])/(acos(c.g.x_ref-x[end]) + c["misc"]["EP"]) )
-    #psi_obj=@NLexpression(n.mdl,w_psi_param*(asin(sin(psi[end] - psi_frg))/(acos(cos(psi[end] - psi_frg)) + c["misc"]["EP"]) )^2 )
+    #psi_frg=@NLexpression(n.ocp.mdl,asin(c.g.y_ref-y[end])/(acos(c.g.x_ref-x[end]) + c["misc"]["EP"]) )
+    #psi_obj=@NLexpression(n.ocp.mdl,w_psi_param*(asin(sin(psi[end] - psi_frg))/(acos(cos(psi[end] - psi_frg)) + c["misc"]["EP"]) )^2 )
     psi_obj = 0
-    # psi_obj=@NLexpression(n.mdl,w_psi_param*(asin(sin(psi[end] - asin(c.g.y_ref-y[end])/acos(c.g.x_ref-x[end])))/(acos(cos(psi[end] - asin(c.g.y_ref-y[end])/acos(c.g.x_ref-x[end]))) + c["misc"]["EP"]) )^2 )
+    # psi_obj=@NLexpression(n.ocp.mdl,w_psi_param*(asin(sin(psi[end] - asin(c.g.y_ref-y[end])/acos(c.g.x_ref-x[end])))/(acos(cos(psi[end] - asin(c.g.y_ref-y[end])/acos(c.g.x_ref-x[end]))) + c["misc"]["EP"]) )^2 )
 
     # soft constraints on vertical tire load
     tire_obj = integrate!(n,tire_expr)
@@ -415,10 +415,10 @@ function objFunc!(n,c,tire_expr)
     haf_obj = 0
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
-    @NLobjective(n.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.tf + ce_obj )
+    @NLobjective(n.ocp.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
   elseif isequal(c["misc"]["model"],:KinematicBicycle) # TODO add penalty on ax
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2))  ) )
-    @NLobjective(n.mdl, Min, goal_obj + c["weights"]["time"]*n.tf + ce_obj )
+    @NLobjective(n.ocp.mdl, Min, goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
   end
  return obj_params
 end
@@ -430,8 +430,8 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function initOpt!(n)
-  n.s.save = false; n.s.MPC = false; n.s.evalConstraints = false; n.s.cacheOnly = true;
-  if n.s.save
+  n.s.ocp.save = false; n.s.mpc.on = false; n.s.ocp.evalConstraints = false; n.s.ocp.cacheOnly = true;
+  if n.s.ocp.save
    warn("saving initial optimization results where functions where cached!")
   end
   for k in 1:3 # initial optimization (s)
@@ -441,9 +441,9 @@ function initOpt!(n)
 
   # defineSolver!(n,solverConfig(c)) # modifying solver settings NOTE currently not in use
 
-  n.s.save = true  # NOTE set to false if running in parallel to save time
-  n.s.cacheOnly = false
-  n.s.evalConstraints = false # NOTE set to true to investigate infeasibilities
+  n.s.ocp.save = true  # NOTE set to false if running in parallel to save time
+  n.s.ocp.cacheOnly = false
+  n.s.ocp.evalConstraints = false # NOTE set to true to investigate infeasibilities
   return nothing
 end
 
