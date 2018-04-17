@@ -76,17 +76,16 @@ function initializeAutonomousControl(c)
  else
    error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle "))
  end
- n.ocp.tfMax = copy(c["misc"]["tfMax"])
+ n.s.ocp.tfMax = copy(c["misc"]["tfMax"])
  n.ocp.params = [pa]   # vehicle parameters
 
  # set mpc parameters
- initializeMPC!(n;FixedTp=c["misc"]["FixedTp"],PredictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),max_iter=copy(c["misc"]["mpc_max_iter"]));
- n.mpc.X0 = [copy(X0)]
+ defineMPC!(n;fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]));
+ # n.r.ip.X0p = [copy(X0)] NOTE removed..
 
  # TODO check if Chrono is being used
  if isequal(c["misc"]["model"],:ThreeDOFv2)
-  n.mpc.plantEquations = ThreeDOFv2 # TODO consider changing to ThreeDOFv1
-  n.mpc.modelEquations = ThreeDOFv2
+  defineIP!(n,ThreeDOFv2)   # TODO consider changing to ThreeDOFv1
 
   # define tolerances
   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]]
@@ -108,8 +107,8 @@ function initializeAutonomousControl(c)
   dynamics!(n,dx)
   constraints!(n,con)
  elseif isequal(c["misc"]["model"],:KinematicBicycle)
-   n.mpc.plantEquations = KinematicBicycle # TODO consider changing to ThreeDOFv1
-   n.mpc.modelEquations = KinematicBicycle
+   # TODO consider changing to ThreeDOFv1
+   defineIP!(n,KinematicBicycle)
 
    # define tolerances
    X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["ipsi"], c["tolerances"]["iu"]]
@@ -151,7 +150,7 @@ Date Create: 3/20/2017, Last Modified: 3/12/2018 \n
 function updateAutoParams!(n,c)
 
   # obstacle information-> only show if it is in range at the start TODO
-  goal_in_range = goalRange!(n,c)
+  goal_in_range = goalRange!(n)
   if goal_in_range # TODO make a flag that indicates this switch has been flipped
     println("goal is in range")
 
@@ -187,16 +186,10 @@ function avMpc(c)
 
  for ii = 1:n.mpc.max_iter
   println("Running model for the: ",n.r.eval_num + 1," time")
-  updateAutoParams!(n,c)                 # update model parameters
+  updateAutoParams!(n,c)                 # update model parameters TODO pass this
   status = autonomousControl!(n)         # rerun optimization
 
-  if n.r.status==:Optimal || n.r.status==:Suboptimal || n.r.status==:UserLimit
-    println("Passing Optimized Signals to 3DOF Vehicle Model");
-  elseif n.r.status==:Infeasible
-    println("\n FINISH:Pass PREVIOUSLY Optimized Signals to 3DOF Vehicle Model \n"); break;
-  else
-    println("\n There status is nor Optimal or Infeaible -> create logic for this case!\n"); break;
-  end
+  println("Passing Optimized Signals to 3DOF Vehicle Model");
 
   n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex  # external so that it can be updated easily in PathFollowing
 
@@ -204,16 +197,16 @@ function avMpc(c)
   # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
   # expanded from the previous check and one final check is performed otherwise the run is failed
   if getvalue(n.ocp.tf) < 0.01
-    if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 2*c["goal"]["tol"]
-    println("Expanded Goal Attained! \n"); n.mpc.goal_reached=true;
+    if ((n.r.ip.dfplant[end][:x][end]-c["goal"]["x"])^2 + (n.r..ip.dfplant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 2*c["goal"]["tol"]
+    println("Expanded Goal Attained! \n"); n.f.mpc.goal_reached=true;
     break;
     else
     warn("Expanded Goal Not Attained! -> stopping simulation! \n"); break;
     end
   elseif getvalue(n.ocp.tf) < 0.5 # if the vehicle is near the goal => tf may be less then 0.5 s
-    tf = (n.r.eval_num-1)*n.mpc.tex + getvalue(n.ocp.tf)
+    tf = (n.r.evalNum-1)*n.mpc.v.tex + getvalue(n.ocp.tf)
   else
-    tf = (n.r.eval_num)*n.mpc.tex
+    tf = (n.r.evalNum)*n.mpc.v.tex
   end
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
@@ -238,18 +231,6 @@ function avMpc(c)
  end
  return n
 end
-
-"""
-# TODO use plant instead of mpc
---------------------------------------------------------------------------------------\n
-Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
---------------------------------------------------------------------------------------\n
-"""
-function goalRange!(n,c)
-  return ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
-end
-
 
 """
 --------------------------------------------------------------------------------------\n
@@ -328,13 +309,13 @@ function obstacleAvoidanceConstraints!(n,c)
   obs_params = [a,b,X_0,Y_0,speed_x,speed_y,Q];
 
   # obstacle postion after the initial postion
-  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints], X_0[j] + speed_x[j]*n.tV[i]);
-  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints], Y_0[j] + speed_y[j]*n.tV[i]);
+  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[i]);
+  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[i]);
 
   # constraint on position
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
 
-  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.numStatePoints-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
+  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
   newConstraint!(n,obs_con,:obs_con);
 
   return obs_params
@@ -358,11 +339,11 @@ function lidarConstraints!(n,c)
   newConstraint!(n,LiDAR_edge_low,:LiDAR_edge_low);
 
  # constrain all state points to be within LiDAR boundary
-  LiDAR_range = @NLconstraint(n.ocp.mdl, [j=1:n.numStatePoints-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
+  LiDAR_range = @NLconstraint(n.ocp.mdl, [j=1:n.ocp.state.pts-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
 
   newConstraint!(n,LiDAR_range,:LiDAR_range);
 
-  if goalRange!(n,c)   # relax LiDAR boundary constraints
+  if goalRange!(n)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
   else                  # relax constraints on the final x and y position
@@ -380,7 +361,7 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 """
 function objFunc!(n,c,tire_expr)
   # parameters
-  if goalRange!(n,c)
+  if goalRange!(n)
    println("\n goal in range")
    @NLparameter(n.ocp.mdl, w_goal_param == 0.0)
    @NLparameter(n.ocp.mdl, w_psi_param == 0.0)
@@ -424,6 +405,7 @@ function objFunc!(n,c,tire_expr)
 end
 
 """
+#TODO move
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
