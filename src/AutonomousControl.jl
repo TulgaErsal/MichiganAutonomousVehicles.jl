@@ -150,7 +150,7 @@ Date Create: 3/20/2017, Last Modified: 3/12/2018 \n
 function updateAutoParams!(n,c)
 
   # obstacle information-> only show if it is in range at the start TODO
-  goal_in_range = goalRange!(n)
+  goal_in_range = goalRange(n,c)
   if goal_in_range # TODO make a flag that indicates this switch has been flipped
     println("goal is in range")
 
@@ -230,6 +230,17 @@ function avMpc(c)
   end
  end
  return n
+end
+
+"""
+# TODO use plant instead of mpc
+--------------------------------------------------------------------------------------\n
+Author: Huckleberry Febbo, Graduate Student, University of Michigan
+Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
+--------------------------------------------------------------------------------------\n
+"""
+function goalRange(n,c)
+  return ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
 end
 
 """
@@ -343,7 +354,7 @@ function lidarConstraints!(n,c)
 
   newConstraint!(n,LiDAR_range,:LiDAR_range);
 
-  if goalRange!(n)   # relax LiDAR boundary constraints
+  if goalRange(n,c)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
   else                  # relax constraints on the final x and y position
@@ -361,7 +372,7 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 """
 function objFunc!(n,c,tire_expr)
   # parameters
-  if goalRange!(n)
+  if goalRange(n,c)
    println("\n goal in range")
    @NLparameter(n.ocp.mdl, w_goal_param == 0.0)
    @NLparameter(n.ocp.mdl, w_psi_param == 0.0)
