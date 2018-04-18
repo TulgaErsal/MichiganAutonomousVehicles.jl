@@ -79,13 +79,10 @@ function initializeAutonomousControl(c)
  n.s.ocp.tfMax = copy(c["misc"]["tfMax"])
  n.ocp.params = [pa]   # vehicle parameters
 
- # set mpc parameters
- defineMPC!(n;fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]));
- # n.r.ip.X0p = [copy(X0)] NOTE removed..
-
  # TODO check if Chrono is being used
  if isequal(c["misc"]["model"],:ThreeDOFv2)
-  defineIP!(n,ThreeDOFv2)   # TODO consider changing to ThreeDOFv1
+   # TODO consider changing to ThreeDOFv1
+  IPModel = ThreeDOFv2
 
   # define tolerances
   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]]
@@ -108,7 +105,7 @@ function initializeAutonomousControl(c)
   constraints!(n,con)
  elseif isequal(c["misc"]["model"],:KinematicBicycle)
    # TODO consider changing to ThreeDOFv1
-   defineIP!(n,KinematicBicycle)
+   IPModel = KinematicBicycle
 
    # define tolerances
    X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["ipsi"], c["tolerances"]["iu"]]
@@ -132,15 +129,18 @@ function initializeAutonomousControl(c)
  end
 
  configProb!(n,c)
- misc_params = [c["misc"]["Lr"]]
- # need misc_params for goalRange() in updateAutoParams!() which gets passed to simMpc!()
- n.ocp.params = [NaN,NaN,NaN,NaN,misc_params]
+ # need c for goalRange() in updateAutoParams!() which gets passed to simMpc!()
+ n.ocp.params = [NaN,NaN,NaN,NaN,c]
  obs_params = obstacleAvoidanceConstraints!(n,c)
  LiDAR_params = lidarConstraints!(n,c)
  obj_params = objFunc!(n,c,tire_expr)
-            #  1      2          3          4              5
- n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,misc_params]
+            #  1      2          3          4          5
+ n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
  initOpt!(n)
+
+ # set mpc parameters
+ defineMPC!(n;fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
+ defineIP!(n,IPModel)
  return n
 end
 
@@ -243,9 +243,13 @@ Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function goalRange(n)
-  X = currentIPState(n)[1]
-  lr = n.ocp.params[5][1]
-  return ( (X[1] - n.mpc.v.goal[1])^2 + (X[2] - n.mpc.v.goal[2])^2 )^0.5 < lr
+  if isequal(n.r.ocp.evalNum,0)
+    X = [n.ocp.X0[1],n.ocp.X0[2]]
+  else
+    X = currentIPState(n)[1]
+  end
+  c = n.ocp.params[5]
+  return ( (X[1] - c["goal"]["x"])^2 + (X[2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
 end
 
 """
