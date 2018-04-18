@@ -132,11 +132,14 @@ function initializeAutonomousControl(c)
  end
 
  configProb!(n,c)
+ misc_params = [c["misc"]["Lr"]]
+ # need misc_params for goalRange() in updateAutoParams!() which gets passed to simMpc!()
+ n.ocp.params = [NaN,NaN,NaN,NaN,misc_params]
  obs_params = obstacleAvoidanceConstraints!(n,c)
  LiDAR_params = lidarConstraints!(n,c)
  obj_params = objFunc!(n,c,tire_expr)
-            #  1      2          3          4
- n.ocp.params = [pa,obs_params,LiDAR_params,obj_params]
+            #  1      2          3          4              5
+ n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,misc_params]
  initOpt!(n)
  return n
 end
@@ -147,10 +150,10 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 3/20/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function updateAutoParams!(n,c)
+function updateAutoParams!(n)
 
   # obstacle information-> only show if it is in range at the start TODO
-  goal_in_range = goalRange(n,c)
+  goal_in_range = goalRange(n)
   if goal_in_range # TODO make a flag that indicates this switch has been flipped
     println("goal is in range")
 
@@ -239,8 +242,10 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
-function goalRange(n,c)
-  return ( (n.mpc.X0[end][1] - c["goal"]["x"])^2 + (n.mpc.X0[end][2] - c["goal"]["yVal"])^2 )^0.5 < c["misc"]["Lr"]
+function goalRange(n)
+  X = currentIPState(n)[1]
+  lr = n.ocp.params[5][1]
+  return ( (X[1] - n.mpc.v.goal[1])^2 + (X[2] - n.mpc.v.goal[2])^2 )^0.5 < lr
 end
 
 """
@@ -354,7 +359,7 @@ function lidarConstraints!(n,c)
 
   newConstraint!(n,LiDAR_range,:LiDAR_range);
 
-  if goalRange(n,c)   # relax LiDAR boundary constraints
+  if goalRange(n)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
   else                  # relax constraints on the final x and y position
@@ -372,7 +377,7 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 """
 function objFunc!(n,c,tire_expr)
   # parameters
-  if goalRange(n,c)
+  if goalRange(n)
    println("\n goal in range")
    @NLparameter(n.ocp.mdl, w_goal_param == 0.0)
    @NLparameter(n.ocp.mdl, w_psi_param == 0.0)
@@ -413,31 +418,6 @@ function objFunc!(n,c,tire_expr)
     @NLobjective(n.ocp.mdl, Min, goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
   end
  return obj_params
-end
-
-"""
-#TODO move
---------------------------------------------------------------------------------------\n
-Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
---------------------------------------------------------------------------------------\n
-"""
-function initOpt!(n)
-  n.s.ocp.save = false; n.s.mpc.on = false; n.s.ocp.evalConstraints = false; n.s.ocp.cacheOnly = true;
-  if n.s.ocp.save
-   warn("saving initial optimization results where functions where cached!")
-  end
-  for k in 1:3 # initial optimization (s)
-   status = optimize!(n);
-   if status==:Optimal; break; end
-  end
-
-  # defineSolver!(n,solverConfig(c)) # modifying solver settings NOTE currently not in use
-
-  n.s.ocp.save = true  # NOTE set to false if running in parallel to save time
-  n.s.ocp.cacheOnly = false
-  n.s.ocp.evalConstraints = false # NOTE set to true to investigate infeasibilities
-  return nothing
 end
 
 end # module
