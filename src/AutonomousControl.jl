@@ -127,19 +127,27 @@ function initializeAutonomousControl(c)
    dynamics!(n,dx)
    tire_expr = NaN
  end
-
  configProb!(n,c)
+
  # need c for goalRange() in updateAutoParams!() which gets passed to simMpc!()
  n.ocp.params = [NaN,NaN,NaN,NaN,c]
  obs_params = obstacleAvoidanceConstraints!(n,c)
  LiDAR_params = lidarConstraints!(n,c)
  obj_params = objFunc!(n,c,tire_expr)
-            #  1      2          3          4          5
+               #  1      2          3          4       5
  n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
  initOpt!(n)
 
  # set mpc parameters
- defineMPC!(n;fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
+ if isequal(c["misc"]["model"],:ThreeDOFv2)
+   goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN,NaN,NaN,NaN,NaN]
+   goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN,NaN,NaN,NaN,NaN]
+ elseif isequal(c["misc"]["model"],:KinematicBicycle)
+   goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN]
+   goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN]
+ end
+
+ defineMPC!(n;goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
  defineIP!(n,IPModel)
  return n
 end
@@ -158,9 +166,9 @@ function updateAutoParams!(n)
     println("goal is in range")
 
     # enforce final state constraints on x and y position
-    for st=1:2;
-      setRHS(n.r.ocp.xfCon[st,1], +(n.XF[st]+n.ocp.XF_tol[st]));
-      setRHS(n.r.ocp.xfCon[st,2], -(n.XF[st]-n.ocp.XF_tol[st]));
+    for st=1:2
+      setRHS(n.r.ocp.xfCon[st,1], +(n.ocp.XF[st]+n.ocp.XF_tol[st]));
+      setRHS(n.r.ocp.xfCon[st,2], -(n.ocp.XF[st]-n.ocp.XF_tol[st]));
     end
 
     # relax LiDAR constraints
@@ -176,7 +184,10 @@ function updateAutoParams!(n)
  return goal_in_range
 end
 
+
 """
+
+# delete this
 # this function is not used by ROS
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
@@ -243,7 +254,7 @@ Date Create: 7/04/2017, Last Modified: 3/12/2018 \n
 --------------------------------------------------------------------------------------\n
 """
 function goalRange(n)
-  if isequal(n.r.ocp.evalNum,0)
+  if isequal(n.r.ocp.evalNum,1)
     X = [n.ocp.X0[1],n.ocp.X0[2]]
   else
     X = currentIPState(n)[1]

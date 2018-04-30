@@ -11,6 +11,7 @@ c = load(open(string(Pkg.dir("MAVs"),"/config/planner/",planner_name,".yaml")))
   c["obstacle"] = load(open(string(Pkg.dir("MAVs"),"/config/case/",case_name,".yaml")))["obstacle"]
   setConfig(c,"misc";(:N=>40),(:model=>model),(:solver=>:Ipopt),(:integrationScheme=>:trapezoidal))
   fixYAML(c)   # fix messed up data types
-  n = avMpc(c)
-  @test n.mpc.goal_reached
+  n = initializeAutonomousControl(c);
+  simMPC!(n;updateFunction=updateAutoParams!,checkFunction=checkCrash)
+  @test n.f.mpc.goalReached
 end

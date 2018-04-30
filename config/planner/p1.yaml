@@ -12,7 +12,7 @@ misc:
   N: NaN                 # number of points in :tm methods
   solver: NaN            # either :IPOPT or :KNITRO
   mpc_max_iter: 60       # an MPC parameter
-  PredictX0: false       # if the state that the vehicle will be at when the optimization is finished is to be predicted
+  PredictX0: true       # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
   finalTimeDV: true      # bool to indicate if the final time is a variable
   activeSafety: NaN      # a bool if the system is only used to avoid collisions with obstacles
