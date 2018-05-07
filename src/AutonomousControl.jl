@@ -147,7 +147,7 @@ function initializeAutonomousControl(c)
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN]
  end
 
- defineMPC!(n;goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
+ defineMPC!(n;mode=c["misc"]["mode"],goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
  defineIP!(n,IPModel)
  return n
 end
