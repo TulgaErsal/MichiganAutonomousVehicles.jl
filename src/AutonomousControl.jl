@@ -113,13 +113,13 @@ function initializeAutonomousControl(c)
    defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol)
 
            # 1  2  3  4
-   names = [:x,:y,:psi,:ux];
-   descriptions = ["X (m)","Y (m)","Yaw Angle (rad)","Longitudinal Velocity (m/s)"];
+   names = [:x,:y,:psi,:u];
+   descriptions = ["X (m)","Y (m)","Yaw Angle (rad)","Total Velocity (m/s)"];
    states!(n,names,descriptions=descriptions)
 
             # 1   2
-   names = [:sa,:ax];
-   descriptions = [ "Steering Angle (rad)","Longitudinal Acceleration (m/s^2)"];
+   names = [:sa,:a];
+   descriptions = [ "Steering Angle (rad)","Total Acceleration (m/s^2)"];
    controls!(n,names,descriptions=descriptions)
 
    # dynamic constraints and additional constraints
@@ -405,9 +405,9 @@ function objFunc!(n,c,tire_expr)
   # penalize distance to goal
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)
-    psi = n.r.ocp.x[:,5];
+    psi = n.r.ocp.x[:,5]
   elseif isequal(c["misc"]["model"],:KinematicBicycle)
-    psi = n.r.ocp.x[:,3];
+    psi = n.r.ocp.x[:,3]
   end
 
   goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2 + c["misc"]["EP"]))
