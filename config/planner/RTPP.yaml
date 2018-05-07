@@ -25,11 +25,11 @@ misc:
   ux: NaN   # for constant speed case
 
 weights:
-  goal: 100.
+  goal: 10. # 100.
   psi: 0.01
   time: 0.05
   haf: 1.0e-5
-  Fz: 0.1
+  Fz: 5. # 0.1
   ce: 1.
   sa: 0.1
   sr: 1.
@@ -43,7 +43,7 @@ tolerances:
   iv: 0.05
   ir: 0.05
   ipsi: 0.01
-  isa: 0.001
+  isa: 0.0025
   iu: 0.05
   iax: 0.05
   fx: 1.0
