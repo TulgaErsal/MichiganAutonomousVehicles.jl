@@ -13,5 +13,5 @@ c = load(open(string(Pkg.dir("MAVs"),"/config/planner/",planner_name,".yaml")))
   fixYAML(c)   # fix messed up data types
   n = initializeAutonomousControl(c);
   simMPC!(n;updateFunction=updateAutoParams!,checkFunction=checkCrash)
-  @test n.f.mpc.goalReached
+  @test n.f.mpc.goalReached[1]
 end
