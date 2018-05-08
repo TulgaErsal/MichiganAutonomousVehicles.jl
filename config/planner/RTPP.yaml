@@ -22,7 +22,7 @@ misc:
   NF: NaN                # number to subtract off the constraint check vector-> used for activeSafety mode so driver sees obstacle before autonomy
   integrationScheme: NaN
   tfMax: 10 # maximum final time in MPC
-  EP: 0.1   # small number to avoid singularities TODO move this from VehicleModels.jl
+  EP: 0.01   # small number to avoid singularities TODO move this from VehicleModels.jl
   ux: NaN   # for constant speed case
 
 weights:
