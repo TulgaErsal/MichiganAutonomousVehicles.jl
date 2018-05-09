@@ -56,7 +56,7 @@ Date Create: 2/1/2017, Last Modified: 4/08/2018 \n
 """
 function initializeAutonomousControl(c)
 
- pa = Vpara(m=copy(c["vehicle"][:m]),Izz=copy(c["vehicle"][:Izz]), la=copy(c["vehicle"][:la]), lb=copy(c["vehicle"][:lb]), FzF0=copy(c["vehicle"][:FzF0]), FzR0=copy(c["vehicle"][:FzR0]), dFzx_coeff=copy(c["vehicle"][:dFzx_coeff]), KZX=copy(c["vehicle"][:KZX]), KZYR=copy(c["vehicle"][:KZYR]), AXC=copy(c["vehicle"][:AXC]),x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),sr_min=copy(c["vehicle"][:sr_min]),sr_max=copy(c["vehicle"][:sr_max]),jx_min=copy(c["vehicle"][:jx_min]),jx_max=copy(c["vehicle"][:jx_max]),FZ0=copy(c["vehicle"][:FZ0]),PCY1=copy(c["vehicle"][:PCY1]),PDY1=copy(c["vehicle"][:PDY1]),PDY2=copy(c["vehicle"][:PDY2]),PEY1=copy(c["vehicle"][:PEY1]),PEY2=copy(c["vehicle"][:PEY2]),PEY3=copy(c["vehicle"][:PEY3]),PKY1=copy(c["vehicle"][:PKY1]),PKY2=copy(c["vehicle"][:PKY2]),PHY1=copy(c["vehicle"][:PHY1]),PHY2=copy(c["vehicle"][:PHY2]),PVY1=copy(c["vehicle"][:PVY1]),PVY2=copy(c["vehicle"][:PVY2]),Caf=copy(c["vehicle"][:Caf]),Car=copy(c["vehicle"][:Car]),Fy_min=copy(c["vehicle"][:Fy_min]),Fy_max=copy(c["vehicle"][:Fy_max]),Fz_min=copy(c["vehicle"][:Fz_min]),Fz_off=copy(c["vehicle"][:Fz_off]),EP=copy(c["misc"]["EP"]))
+ pa = Vpara(m=copy(c["vehicle"][:m]),Izz=copy(c["vehicle"][:Izz]), la=copy(c["vehicle"][:la]), lb=copy(c["vehicle"][:lb]), FzF0=copy(c["vehicle"][:FzF0]), FzR0=copy(c["vehicle"][:FzR0]), KZX=copy(c["vehicle"][:KZX]), KZYR=copy(c["vehicle"][:KZYR]), KZYF=copy(c["vehicle"][:KZYF]), AXC=copy(c["vehicle"][:AXC]),x_min=copy(c["misc"]["Xlims"][1]),x_max=copy(c["misc"]["Xlims"][2]),y_min=copy(c["misc"]["Ylims"][1]),y_max=copy(c["misc"]["Ylims"][2]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),sr_min=copy(c["vehicle"][:sr_min]),sr_max=copy(c["vehicle"][:sr_max]),jx_min=copy(c["vehicle"][:jx_min]),jx_max=copy(c["vehicle"][:jx_max]),FZ0=copy(c["vehicle"][:FZ0]),PCY1=copy(c["vehicle"][:PCY1]),PDY1=copy(c["vehicle"][:PDY1]),PDY2=copy(c["vehicle"][:PDY2]),PEY1=copy(c["vehicle"][:PEY1]),PEY2=copy(c["vehicle"][:PEY2]),PEY3=copy(c["vehicle"][:PEY3]),PKY1=copy(c["vehicle"][:PKY1]),PKY2=copy(c["vehicle"][:PKY2]),PHY1=copy(c["vehicle"][:PHY1]),PHY2=copy(c["vehicle"][:PHY2]),PVY1=copy(c["vehicle"][:PVY1]),PVY2=copy(c["vehicle"][:PVY2]),Caf=copy(c["vehicle"][:Caf]),Car=copy(c["vehicle"][:Car]),Fy_min=copy(c["vehicle"][:Fy_min]),Fy_max=copy(c["vehicle"][:Fy_max]),Fz_min=copy(c["vehicle"][:Fz_min]),Fz_off=copy(c["vehicle"][:Fz_off]),EP=copy(c["misc"]["EP"]))
  @unpack_Vpara pa
 
  if isequal(c["misc"]["model"],:ThreeDOFv2)
@@ -194,67 +194,6 @@ function updateAutoParams!(n)
  return goal_in_range
 end
 
-
-"""
-
-# delete this
-# this function is not used by ROS
---------------------------------------------------------------------------------------\n
-Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 2/06/2018, Last Modified: 4/08/2018 \n
---------------------------------------------------------------------------------------\n
-"""
-function avMpc(c)
-
- n = initializeAutonomousControl(c);
-
- for ii = 1:n.mpc.max_iter
-  println("Running model for the: ",n.r.eval_num + 1," time")
-  updateAutoParams!(n,c)                 # update model parameters TODO pass this
-  status = autonomousControl!(n)         # rerun optimization
-
-  println("Passing Optimized Signals to 3DOF Vehicle Model");
-
-  n.mpc.t0_actual = (n.r.eval_num-1)*n.mpc.tex  # external so that it can be updated easily in PathFollowing
-
-  # if the vehicle is very close to the goal sometimes the optimization returns with a small final time
-  # and it can even be negative (due to tolerances in NLP solver). If this is the case, the goal is slightly
-  # expanded from the previous check and one final check is performed otherwise the run is failed
-  if getvalue(n.ocp.tf) < 0.01
-    if ((n.r.ip.dfplant[end][:x][end]-c["goal"]["x"])^2 + (n.r..ip.dfplant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < 2*c["goal"]["tol"]
-    println("Expanded Goal Attained! \n"); n.f.mpc.goal_reached=true;
-    break;
-    else
-    warn("Expanded Goal Not Attained! -> stopping simulation! \n"); break;
-    end
-  elseif getvalue(n.ocp.tf) < 0.5 # if the vehicle is near the goal => tf may be less then 0.5 s
-    tf = (n.r.evalNum-1)*n.mpc.v.tex + getvalue(n.ocp.tf)
-  else
-    tf = (n.r.evalNum)*n.mpc.v.tex
-  end
-
-  if isequal(c["misc"]["model"],:ThreeDOFv2)
-    U = n.r.U # TODO change to v1 for plant sim
-  elseif isequal(c["misc"]["model"],:KinematicBicycle2)
-    #U = hcat(n.r.U[:,1],n.r.X[:,4])# TODO change to v1 for plant sim
-    U = n.r.U
-  end
-
-  simPlant!(n;tf=tf,U=U)
-  updateX0!(n)
-  if n.r.eval_num==n.mpc.max_iter
-    warn(" \n This is the last itteration! \n i.e. the maximum number of iterations has been reached while closing the loop; consider increasing (max_iteration) \n")
-  end
-  if ((n.r.dfs_plant[end][:x][end]-c["goal"]["x"])^2 + (n.r.dfs_plant[end][:y][end]-c["goal"]["yVal"])^2)^0.5 < c["goal"]["tol"]
-    println("Goal Attained! \n"); n.mpc.goal_reached=true;
-    break;
-  end
-  if checkCrash(n,c,c["misc"]["sm2"];(:plant=>true))
-    warn(" \n The vehicle crashed -> stopping simulation! \n"); break;
-  end
- end
- return n
-end
 
 """
 # TODO use plant instead of mpc
@@ -433,8 +372,9 @@ function objFunc!(n,c,tire_expr)
     tire_obj = integrate!(n,tire_expr)
 
     # minimizing the integral over the entire prediction horizon of the line that passes through the goal
-    #haf_obj=integrate!(n,:( $c.w.haf*( sin($c.g.psi_ref)*(x[j]-$c.g.x_ref) - cos($c.g.psi_ref)*(y[j]-$c.g.y_ref) )^2 ) )
-    haf_obj = 0
+    haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ) )
+    #haf_obj = 0
+
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
     @NLobjective(n.ocp.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
