@@ -61,10 +61,10 @@ tolerances:
 
 solver:
   # settings for both KNITRO and IPOPT
-  outlev: 0 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
+  outlev: 2 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
   feastol_abs: 7e-2 # (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
   maxit: 500 # (c.m.solver==:Ipopt) ? :max_iter : :maxit
-  maxtime_cpu: 0.5 # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  maxtime_cpu: 30. # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
 
   # settings for KNITRO
   ftol: 1e-15 # relative change in the objective function is less than ftol for ftol_iters consecutive iterations
@@ -76,6 +76,11 @@ solver:
   opttol: 1e20  # final relative stopping tolerance for the KKT (optimality) error
   opttol_abs: 5e-1 # final absolute stopping tolerance for the KKT (optimality) error
   xtol: 1e-12  # optimization process will terminate if the relative change in all components of the solution point estimate is less than xtol for xtol_iters
+  algorithm: 1
+  bar_murule: 1
+  linsolver: 4
+  cg_pmem: 0
+
   # settings for Ipopt
   warm_start_init_point: yes  #
   dual_inf_tol: 5.   # Absolute tolerance on the dual infeasibility
