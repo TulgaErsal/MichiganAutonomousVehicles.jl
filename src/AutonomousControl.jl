@@ -141,7 +141,7 @@ function initializeAutonomousControl(c)
  obj_params = objFunc!(n,c,tire_expr)
                #  1      2          3          4       5
  n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
- initOpt!(n)
+ initOpt!(n;save=true,evalConstraints=true)
 
  # set mpc parameters
  if isequal(c["misc"]["model"],:ThreeDOFv2)
@@ -156,6 +156,7 @@ function initializeAutonomousControl(c)
  if isequal(c["misc"]["mode"], :OCP)
    defineIP!(n,IPModel)
  elseif isequal(c["misc"]["mode"], :IP) # NOTE for now assuming that the ThreeDOFv1 is always used for the IP
+   error("TODO")
    defineIP!(n,IPModel)
  end
 
@@ -190,6 +191,16 @@ function updateAutoParams!(n)
     setvalue(n.ocp.params[4][2],0.0)
   end
   #NOTE assuming it is not going in and out of range
+
+  # update initial conditions
+  setvalue(n.ocp.params[4][3], n.ocp.X0[1])
+  setvalue(n.ocp.params[4][4], n.ocp.X0[2])
+  setvalue(n.ocp.params[4][5], n.ocp.X0[3])
+  setvalue(n.ocp.params[4][6], n.ocp.X0[4])
+  setvalue(n.ocp.params[4][7], n.ocp.X0[5])
+  setvalue(n.ocp.params[4][8], n.ocp.X0[6])
+  setvalue(n.ocp.params[4][9], n.ocp.X0[7])
+  setvalue(n.ocp.params[4][10], n.ocp.X0[8])
 
  return goal_in_range
 end
@@ -349,12 +360,26 @@ function objFunc!(n,c,tire_expr)
     @NLparameter(n.ocp.mdl, w_goal_param == c["weights"]["goal"])
     @NLparameter(n.ocp.mdl, w_psi_param == c["weights"]["psi"])
   end
-  obj_params = [w_goal_param,w_psi_param]
+  @NLparameter(n.ocp.mdl, x0_param == c["X0"]["x"])
+  @NLparameter(n.ocp.mdl, y0_param == c["X0"]["yVal"])
+  @NLparameter(n.ocp.mdl, v0_param == c["X0"]["v"])
+  @NLparameter(n.ocp.mdl, r0_param == c["X0"]["r"])
+  @NLparameter(n.ocp.mdl, psi0_param == c["X0"]["psi"])
+  @NLparameter(n.ocp.mdl, sa0_param == c["X0"]["sa"])
+  @NLparameter(n.ocp.mdl, ux0_param == c["X0"]["ux"])
+  @NLparameter(n.ocp.mdl, ax0_param == c["X0"]["ax"])
+
+  obj_params = [w_goal_param,w_psi_param,x0_param,y0_param,v0_param,r0_param,psi0_param,sa0_param,ux0_param,ax0_param]
 
   # penalize distance to goal
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)
+    v = n.r.ocp.x[:,3]
+    r = n.r.ocp.x[:,4]
     psi = n.r.ocp.x[:,5]
+    sa = n.r.ocp.x[:,6]
+    ux = n.r.ocp.x[:,7]
+    ax = n.r.ocp.x[:,8]
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     psi = n.r.ocp.x[:,3]
   end
@@ -362,6 +387,10 @@ function objFunc!(n,c,tire_expr)
   goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)^0.5/(((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2)^0.5 + c["misc"]["EP"]))
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
+
+    # match initial conditions with soft constraints
+    ic_obj = @NLexpression(n.ocp.mdl, c["weights"]["ic"]*((x[1]-x0_param)^2 + (y[1]-y0_param)^2 + (v[1] - v0_param)^2 + (r[1] - r0_param)^2 + (psi[1] - psi0_param)^2 + (sa[1] - sa0_param)^2 + (ux[1] - ux0_param)^2 + (ax[1] - ax0_param)^2)^0.5 )
+
     # penalize difference between final heading angle and angle relative to the goal NOTE currently this is broken becasue atan2() is not available
     #psi_frg=@NLexpression(n.ocp.mdl,asin(c.g.y_ref-y[end])/(acos(c.g.x_ref-x[end]) + c["misc"]["EP"]) )
     #psi_obj=@NLexpression(n.ocp.mdl,w_psi_param*(asin(sin(psi[end] - psi_frg))/(acos(cos(psi[end] - psi_frg)) + c["misc"]["EP"]) )^2 )
@@ -377,7 +406,7 @@ function objFunc!(n,c,tire_expr)
 
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
-    @NLobjective(n.ocp.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
+    @NLobjective(n.ocp.mdl, Min, goal_obj + ic_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     # minimizing the integral over the entire prediction horizon of the line that passes through the goal
     haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ) )

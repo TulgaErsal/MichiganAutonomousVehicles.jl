@@ -7,13 +7,13 @@ misc:
   tp: NaN                # prediction horizon (s)
   tex: 0.5               # execution horizon (s)
   sm: 4.5                # (m) distance to make sure we don't hit obstacle (for optimization)
-  sm2: 3.                # (m) distance to make sure we don't hit obstacle (for crash checking)
+  sm2: 2.5                # (m) distance to make sure we don't hit obstacle (for crash checking)
   Lr: 50.                # LiDAR range (m)
   L_rd: 5.               # relaxation distance to LiDAR range
   Nck: NaN               # number of points per interval
   N: NaN                 # number of points in :tm methods
   solver: NaN            # either :IPOPT or :KNITRO
-  mpc_max_iter: 60       # an MPC parameter
+  mpc_max_iter: 50        # an MPC parameter
   PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
   finalTimeDV: true      # bool to indicate if the final time is a variable
@@ -27,6 +27,7 @@ misc:
   ux: NaN   # for constant speed case
 
 weights:
+  ic: 1.0
   goal: 10. # 100.
   psi: 0.01
   time: 2.
@@ -45,12 +46,12 @@ tolerances:
   iy: 0.05
   iv: 0.05
   ir: 0.05
-  ipsi: 0.01
+  ipsi: 0.07
   isa: 0.0025
-  iu: 0.05
+  iu: 0.25
   iax: 0.05
-  fx: 1.0
-  fy: 1.0
+  fx: 5.0
+  fy: 5.0
   fv: NaN # NOTE YAML file turns these into strings and to avoid complication these are currently set manually
   fr: NaN
   fpsi: NaN
@@ -63,7 +64,7 @@ solver:
   outlev: 0 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
   feastol_abs: 7e-2 # (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
   maxit: 500 # (c.m.solver==:Ipopt) ? :max_iter : :maxit
-  maxtime_cpu: 30. # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  maxtime_cpu: 0.5 # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
 
   # settings for KNITRO
   ftol: 1e-15 # relative change in the objective function is less than ftol for ftol_iters consecutive iterations

@@ -2,7 +2,7 @@ goal:
  x: 200.
  yVal: 125.
  psi: 1.5701
- tol: 4.
+ tol: 15.  # NOTE this is a bit redundant with the tolerance fx and fy
 
 X0:
  x: 200.0
@@ -16,7 +16,7 @@ X0:
 
 obstacle:
  num: 4
- radius: [10,2,5,3]
+ radius: [10.,2.,5.,3.]
  length: [5.,5.,5.]
  x0: [180,180,220,200]
  y0: [75,40,60,100]
