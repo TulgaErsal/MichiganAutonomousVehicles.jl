@@ -359,7 +359,7 @@ function objFunc!(n,c,tire_expr)
     psi = n.r.ocp.x[:,3]
   end
 
-  goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)/((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2 + c["misc"]["EP"]))
+  goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)^0.5/(((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2)^0.5 + c["misc"]["EP"]))
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
     # penalize difference between final heading angle and angle relative to the goal NOTE currently this is broken becasue atan2() is not available
