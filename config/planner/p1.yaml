@@ -1,5 +1,6 @@
 misc:
   mode: OCP
+  IPplant: ThreeDOFv1
   model: NaN             # function name
   Xlims: [111.,250.]     # limit for x
   Ylims: [-1., 140.]     # limit for Y

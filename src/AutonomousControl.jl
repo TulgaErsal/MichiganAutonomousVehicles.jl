@@ -66,7 +66,7 @@ function initializeAutonomousControl(c)
    CL = [sr_min, jx_min]; CU = [sr_max, jx_max]
    X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])]
    n = define(numStates=8,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
- elseif isequal(c["misc"]["model"],:KinematicBicycle)
+ elseif isequal(c["misc"]["model"],:KinematicBicycle2)
    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]),NaN,NaN]
    XL = [x_min,y_min,psi_min,u_min]
    XU = [x_max,y_max,psi_max,u_max]
@@ -74,16 +74,19 @@ function initializeAutonomousControl(c)
    X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["psi"]),copy(c["X0"]["ux"])]
    n = define(numStates=4,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
  else
-   error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle "))
+   error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle2 "))
  end
  n.s.ocp.tfMax = copy(c["misc"]["tfMax"])
  n.ocp.params = [pa]   # vehicle parameters
 
  # TODO check if Chrono is being used
  if isequal(c["misc"]["model"],:ThreeDOFv2)
-   # TODO consider changing to ThreeDOFv1
-  IPModel = ThreeDOFv2
 
+  if isequal(c["misc"]["mode"], :OCP)
+    IPModel = ThreeDOFv2
+  elseif isequal(c["misc"]["mode"], :IP)
+    IPModel = ThreeDOFv1
+  end
   # define tolerances
   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]]
   XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]]
@@ -103,27 +106,29 @@ function initializeAutonomousControl(c)
   dx,con,tire_expr = ThreeDOFv2_expr(n)
   dynamics!(n,dx)
   constraints!(n,con)
- elseif isequal(c["misc"]["model"],:KinematicBicycle)
-   # TODO consider changing to ThreeDOFv1
-   IPModel = KinematicBicycle
-
+ elseif isequal(c["misc"]["model"],:KinematicBicycle2)
+   if isequal(c["misc"]["mode"], :OCP)
+     IPModel = KinematicBicycle2
+   elseif isequal(c["misc"]["mode"], :IP)
+     IPModel = ThreeDOFv1
+   end
    # define tolerances
    X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["ipsi"], c["tolerances"]["iu"]]
    XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fpsi"], c["tolerances"]["fu"]]
    defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol)
 
-           # 1  2  3  4
-   names = [:x,:y,:psi,:u];
-   descriptions = ["X (m)","Y (m)","Yaw Angle (rad)","Total Velocity (m/s)"];
+           # 1  2   3   4
+   names = [:x,:y,:psi,:ux];
+   descriptions = ["X (m)","Y (m)","Yaw Angle (rad)","Longitudinal Velocity (m/s)"];
    states!(n,names,descriptions=descriptions)
 
-            # 1   2
-   names = [:sa,:a];
-   descriptions = [ "Steering Angle (rad)","Total Acceleration (m/s^2)"];
+            # 1  2
+   names = [:sa,:ax];
+   descriptions = [ "Steering Angle (rad)","Longitudinal Acceleration (m/s^2)"];
    controls!(n,names,descriptions=descriptions)
 
    # dynamic constraints and additional constraints
-   dx = KinematicBicycle_expr(n)
+   dx = KinematicBicycle_expr2(n)
    dynamics!(n,dx)
    tire_expr = NaN
  end
@@ -142,13 +147,18 @@ function initializeAutonomousControl(c)
  if isequal(c["misc"]["model"],:ThreeDOFv2)
    goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN,NaN,NaN,NaN,NaN]
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN,NaN,NaN,NaN,NaN]
- elseif isequal(c["misc"]["model"],:KinematicBicycle)
+ elseif isequal(c["misc"]["model"],:KinematicBicycle2)
    goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN]
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN]
  end
 
  defineMPC!(n;mode=c["misc"]["mode"],goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
- defineIP!(n,IPModel)
+ if isequal(c["misc"]["mode"], :OCP)
+   defineIP!(n,IPModel)
+ elseif isequal(c["misc"]["mode"], :IP) # NOTE for now assuming that the ThreeDOFv1 is always used for the IP
+   defineIP!(n,IPModel)
+ end
+
  return n
 end
 
@@ -225,7 +235,7 @@ function avMpc(c)
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
     U = n.r.U # TODO change to v1 for plant sim
-  elseif isequal(c["misc"]["model"],:KinematicBicycle)
+  elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     #U = hcat(n.r.U[:,1],n.r.X[:,4])# TODO change to v1 for plant sim
     U = n.r.U
   end
@@ -406,7 +416,7 @@ function objFunc!(n,c,tire_expr)
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)
     psi = n.r.ocp.x[:,5]
-  elseif isequal(c["misc"]["model"],:KinematicBicycle)
+  elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     psi = n.r.ocp.x[:,3]
   end
 
@@ -428,9 +438,14 @@ function objFunc!(n,c,tire_expr)
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
     @NLobjective(n.ocp.mdl, Min, goal_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
-  elseif isequal(c["misc"]["model"],:KinematicBicycle) # TODO add penalty on ax
-    ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2))  ) )
-    @NLobjective(n.ocp.mdl, Min, goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
+  elseif isequal(c["misc"]["model"],:KinematicBicycle2)
+    # minimizing the integral over the entire prediction horizon of the line that passes through the goal
+    haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ) )
+
+    # penalize control effort
+    #ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 + $c["weights"]["ax"]*ax[j]^2 ) ) )
+    ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 ) ) )
+    @NLobjective(n.ocp.mdl, Min, goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj + haf_obj )
   end
  return obj_params
 end

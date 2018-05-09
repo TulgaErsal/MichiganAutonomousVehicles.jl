@@ -27,15 +27,15 @@ misc:
   ux: NaN   # for constant speed case
 
 weights:
-  goal: 10. # 100.
+  goal: 5.0 # 100.
   psi: 0.01
-  time: 0.05
+  time: 1.0
   haf: 1.0e-5
   Fz: 5. # 0.1
   ce: 1.
   sa: 0.1
   sr: 1.
-  ax: 0.01
+  ax: 0.1
   jx: 0.01
   path: 1.0
   driver: 1.0

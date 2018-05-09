@@ -143,7 +143,6 @@ function case2dfs(c)
     dfs[:Ymax] = c["misc"]["Ylims"][2]
     dfs[:tp] = c["misc"]["tp"]
     dfs[:tex] = c["misc"]["tex"]
-  #  dfs[:maxCPU] = c["misc"]["max_cpu_time"]
     dfs[:sms] = c["misc"]["sm"]
     dfs[:smh] = c["misc"]["sm2"]
     dfs[:Lr] = c["misc"]["Lr"]
@@ -159,7 +158,6 @@ function case2dfs(c)
         dfs[:Nck] = NaN
     end
     dfs[:solver] = c["misc"]["solver"]
-    #dfs[:maxIter] = c["misc"]["max_iter"]
     dfs[:MPCmaxIter] = c["misc"]["mpc_max_iter"]
     dfs[:predictX0] = c["misc"]["PredictX0"]
     dfs[:fixedTp] = c["misc"]["FixedTp"]
@@ -171,6 +169,8 @@ function case2dfs(c)
     dfs[:tfMax] = c["misc"]["tfMax"]
     # misc. parameters
     ###################
+
+    
     return dfs
 end
 
