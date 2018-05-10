@@ -194,16 +194,18 @@ function updateAutoParams!(n)
 
   end
   #NOTE assuming it is not going in and out of range
-
-  # update initial conditions
-  setvalue(n.ocp.params[4][3], n.ocp.X0[1])
-  setvalue(n.ocp.params[4][4], n.ocp.X0[2])
-  setvalue(n.ocp.params[4][5], n.ocp.X0[3])
-  setvalue(n.ocp.params[4][6], n.ocp.X0[4])
-  setvalue(n.ocp.params[4][7], n.ocp.X0[5])
-  setvalue(n.ocp.params[4][8], n.ocp.X0[6])
-  setvalue(n.ocp.params[4][9], n.ocp.X0[7])
-  setvalue(n.ocp.params[4][10], n.ocp.X0[8])
+  c = n.ocp.params[5]
+  if isequal(c["misc"]["model"],:ThreeDOFv2)
+    # update initial conditions
+    setvalue(n.ocp.params[4][3], n.ocp.X0[1])
+    setvalue(n.ocp.params[4][4], n.ocp.X0[2])
+    setvalue(n.ocp.params[4][5], n.ocp.X0[3])
+    setvalue(n.ocp.params[4][6], n.ocp.X0[4])
+    setvalue(n.ocp.params[4][7], n.ocp.X0[5])
+    setvalue(n.ocp.params[4][8], n.ocp.X0[6])
+    setvalue(n.ocp.params[4][9], n.ocp.X0[7])
+    setvalue(n.ocp.params[4][10], n.ocp.X0[8])
+  end
 
  return goal_in_range
 end
@@ -378,17 +380,19 @@ function objFunc!(n,c,tire_expr)
     @NLparameter(n.ocp.mdl, w_goal_param == c["weights"]["goal"])
     @NLparameter(n.ocp.mdl, w_psi_param == c["weights"]["psi"])
   end
-  @NLparameter(n.ocp.mdl, x0_param == c["X0"]["x"])
-  @NLparameter(n.ocp.mdl, y0_param == c["X0"]["yVal"])
-  @NLparameter(n.ocp.mdl, v0_param == c["X0"]["v"])
-  @NLparameter(n.ocp.mdl, r0_param == c["X0"]["r"])
-  @NLparameter(n.ocp.mdl, psi0_param == c["X0"]["psi"])
-  @NLparameter(n.ocp.mdl, sa0_param == c["X0"]["sa"])
-  @NLparameter(n.ocp.mdl, ux0_param == c["X0"]["ux"])
-  @NLparameter(n.ocp.mdl, ax0_param == c["X0"]["ax"])
-
-  obj_params = [w_goal_param,w_psi_param,x0_param,y0_param,v0_param,r0_param,psi0_param,sa0_param,ux0_param,ax0_param]
-
+  if isequal(c["misc"]["model"],:ThreeDOFv2)
+    @NLparameter(n.ocp.mdl, x0_param == c["X0"]["x"])
+    @NLparameter(n.ocp.mdl, y0_param == c["X0"]["yVal"])
+    @NLparameter(n.ocp.mdl, v0_param == c["X0"]["v"])
+    @NLparameter(n.ocp.mdl, r0_param == c["X0"]["r"])
+    @NLparameter(n.ocp.mdl, psi0_param == c["X0"]["psi"])
+    @NLparameter(n.ocp.mdl, sa0_param == c["X0"]["sa"])
+    @NLparameter(n.ocp.mdl, ux0_param == c["X0"]["ux"])
+    @NLparameter(n.ocp.mdl, ax0_param == c["X0"]["ax"])
+    obj_params = [w_goal_param,w_psi_param,x0_param,y0_param,v0_param,r0_param,psi0_param,sa0_param,ux0_param,ax0_param]
+  else
+    obj_params = [w_goal_param,w_psi_param]
+  end
   # penalize distance to goal
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)

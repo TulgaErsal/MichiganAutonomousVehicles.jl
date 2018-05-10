@@ -1,7 +1,7 @@
 planner_name = "RTPP"
 vehicle_name = "hmmwv"
 cases = ["s1","s2"]
-models =[:ThreeDOFv2, :KinematicBicycle]
+models =[:ThreeDOFv2, :KinematicBicycle2]
 
 c = load(open(string(Pkg.dir("MAVs"),"/config/planner/",planner_name,".yaml")))
 @testset "cases with (case=>$(case_name)) " for case_name in cases, model in models
