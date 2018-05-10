@@ -38,7 +38,7 @@ function solverConfig(c)
   maxtime_cpu = (c["misc"]["solver"]==:Ipopt) ? :max_cpu_time : :maxtime_cpu
   #S1 = ((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit))
  if c["misc"]["solver"] == :KNITRO
-   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]),(:algorithm=>c["solver"]["algorithm"]),(:bar_murule=>c["solver"]["bar_murule"]),(:linsolver=>c["solver"]["linsolver"]),(:cg_pmem=>c["solver"]["cg_pmem"]))
+   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]),(:algorithm=>c["solver"]["algorithm"]),(:bar_murule=>c["solver"]["bar_murule"]),(:linsolver=>c["solver"]["linsolver"]),(:cg_pmem=>c["solver"]["cg_pmem"]),(:bar_initpt=>c["solver"]["bar_initpt"]),(:bar_penaltycons=>c["solver"]["bar_penaltycons"]),(:bar_penaltyrule=>c["solver"]["bar_penaltyrule"]),(:bar_switchrule=>c["solver"]["bar_switchrule"]),(:linesearch=>c["solver"]["linesearch"]))
  elseif c["misc"]["solver"] == :Ipopt
    #SS=(S1,(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
    SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]),(:warm_start_init_point=>c["solver"]["warm_start_init_point"]),(:dual_inf_tol=>c["solver"]["dual_inf_tol"]),(:compl_inf_tol=>c["solver"]["compl_inf_tol"]),(:acceptable_tol=>c["solver"]["acceptable_tol"]),(:acceptable_constr_viol_tol=>c["solver"]["acceptable_constr_viol_tol"]),(:acceptable_dual_inf_tol=>c["solver"]["acceptable_dual_inf_tol"]),(:acceptable_compl_inf_tol=>c["solver"]["acceptable_compl_inf_tol"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]))
@@ -61,6 +61,7 @@ function initializeAutonomousControl(c)
 
  if isequal(c["misc"]["model"],:ThreeDOFv2)
    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN]
+  # XF = [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
    XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN]
    XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN]
    CL = [sr_min, jx_min]; CU = [sr_max, jx_max]
@@ -177,18 +178,20 @@ function updateAutoParams!(n)
     println("goal is in range")
 
     # enforce final state constraints on x and y position
-    for st=1:2
-      setRHS(n.r.ocp.xfCon[st,1], +(n.ocp.XF[st]+n.ocp.XF_tol[st]));
-      setRHS(n.r.ocp.xfCon[st,2], -(n.ocp.XF[st]-n.ocp.XF_tol[st]));
-    end
+    if !isnan(n.ocp.XF[1])
+      for st = 1:2
+        setRHS(n.r.ocp.xfCon[st,1], +(n.ocp.XF[st]+n.ocp.XF_tol[st]))
+        setRHS(n.r.ocp.xfCon[st,2], -(n.ocp.XF[st]-n.ocp.XF_tol[st]))
+      end
+      # remove terms in cost function
+      setvalue(n.ocp.params[4][1],0.0)
+      setvalue(n.ocp.params[4][2],0.0)
+   end
 
     # relax LiDAR constraints
     setvalue(n.ocp.params[3][1], 1e6)
     setvalue(n.ocp.params[3][2],-1e6)
 
-    # remove terms in cost function
-    setvalue(n.ocp.params[4][1],0.0)
-    setvalue(n.ocp.params[4][2],0.0)
   end
   #NOTE assuming it is not going in and out of range
 
@@ -291,22 +294,22 @@ function obstacleAvoidanceConstraints!(n,c)
   vyObs = copy(c["obstacle"]["vy"])
 
   Q = length(rObs); # number of obstacles
-  @NLparameter(n.ocp.mdl, a[i=1:Q] == rObs[i]);
-  @NLparameter(n.ocp.mdl, b[i=1:Q] == rObs[i]);
-  @NLparameter(n.ocp.mdl, X_0[i=1:Q] == xObs[i]);
-  @NLparameter(n.ocp.mdl, Y_0[i=1:Q] == yObs[i]);
-  @NLparameter(n.ocp.mdl, speed_x[i=1:Q] == vxObs[i]);
-  @NLparameter(n.ocp.mdl, speed_y[i=1:Q] == vyObs[i]);
-  obs_params = [a,b,X_0,Y_0,speed_x,speed_y,Q];
+  @NLparameter(n.ocp.mdl, a[i=1:Q] == rObs[i])
+  @NLparameter(n.ocp.mdl, b[i=1:Q] == rObs[i])
+  @NLparameter(n.ocp.mdl, X_0[i=1:Q] == xObs[i])
+  @NLparameter(n.ocp.mdl, Y_0[i=1:Q] == yObs[i])
+  @NLparameter(n.ocp.mdl, speed_x[i=1:Q] == vxObs[i])
+  @NLparameter(n.ocp.mdl, speed_y[i=1:Q] == vyObs[i])
+  obs_params = [a,b,X_0,Y_0,speed_x,speed_y,Q]
 
   # obstacle postion after the initial postion
-  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[i]);
-  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[i]);
+  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[i])
+  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[i])
 
   # constraint on position
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
 
-  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2));
+  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2))
   newConstraint!(n,obs_con,:obs_con);
 
   return obs_params
@@ -320,25 +323,29 @@ Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
 """
 function lidarConstraints!(n,c)
   # ensure that the final x and y states are near the LiDAR boundary
-  @NLparameter(n.ocp.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2);
-  @NLparameter(n.ocp.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2);
+  @NLparameter(n.ocp.mdl, LiDAR_param_1==(c["misc"]["Lr"] + c["misc"]["L_rd"])^2)
+  @NLparameter(n.ocp.mdl, LiDAR_param_2==(c["misc"]["Lr"] - c["misc"]["L_rd"])^2)
 
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
-  LiDAR_edge_high = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  <= LiDAR_param_1);
-  LiDAR_edge_low = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  >= LiDAR_param_2);
-  newConstraint!(n,LiDAR_edge_high,:LiDAR_edge_high);
-  newConstraint!(n,LiDAR_edge_low,:LiDAR_edge_low);
+  LiDAR_edge_high = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  <= LiDAR_param_1)
+  LiDAR_edge_low = @NLconstraint(n.ocp.mdl,[j=1], (x[end]-x[1])^2+(y[end]-y[1])^2  >= LiDAR_param_2)
+  newConstraint!(n,LiDAR_edge_high,:LiDAR_edge_high)
+  newConstraint!(n,LiDAR_edge_low,:LiDAR_edge_low)
 
  # constrain all state points to be within LiDAR boundary
-  LiDAR_range = @NLconstraint(n.ocp.mdl, [j=1:n.ocp.state.pts-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 );
+  LiDAR_range = @NLconstraint(n.ocp.mdl, [j=1:n.ocp.state.pts-1], (x[j+1]-x[1])^2+(y[j+1]-y[1])^2 <= (c["misc"]["Lr"] + c["misc"]["L_rd"])^2 )
 
-  newConstraint!(n,LiDAR_range,:LiDAR_range);
+  newConstraint!(n,LiDAR_range,:LiDAR_range)
 
   if goalRange(n)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
-  else                  # relax constraints on the final x and y position
-      for st=1:2;for k in 1:2; setRHS(n.r.ocp.xfCon[st,k], 1e6); end; end
+  elseif !isnan(n.ocp.XF[1])   # relax constraints on the final x and y position
+    for st = 1:2
+      for k in 1:2
+        setRHS(n.r.ocp.xfCon[st,k], 1e6)
+      end
+    end
   end
   LiDAR_params = [LiDAR_param_1,LiDAR_param_2]
   return LiDAR_params

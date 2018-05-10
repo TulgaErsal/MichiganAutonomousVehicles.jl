@@ -27,7 +27,7 @@ misc:
   ux: NaN   # for constant speed case
 
 weights:
-  ic: 1.0
+  ic: .0
   goal: 10. # 100.
   psi: 0.01
   time: 2.
@@ -50,8 +50,8 @@ tolerances:
   isa: 0.0025
   iu: 0.25
   iax: 0.05
-  fx: 5.0
-  fy: 5.0
+  fx: 5.0 # 5.0
+  fy: 5.0 # 5.0 to try and improve optimization time
   fv: NaN # NOTE YAML file turns these into strings and to avoid complication these are currently set manually
   fr: NaN
   fpsi: NaN
@@ -80,6 +80,11 @@ solver:
   bar_murule: 1
   linsolver: 4
   cg_pmem: 0
+  bar_initpt: 3
+  bar_penaltycons: 1
+  bar_penaltyrule: 2
+  bar_switchrule: 2
+  linesearch: 1
 
   # settings for Ipopt
   warm_start_init_point: yes  #

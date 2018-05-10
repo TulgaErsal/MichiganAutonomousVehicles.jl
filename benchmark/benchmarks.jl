@@ -1,12 +1,22 @@
-using PkgBenchmark, MAVs, NLOptControl
+using MAVs, NLOptControl, VehicleModels
 
-@benchgroup "psMethods"  ["integrationScheme","Nck"] begin
-    for scheme in (:lgrExplicit,:lgrImplicit)
-        for Nck in ([10,8,6],[12,10,8,6])
-          c=defineCase(;(:mode=>:autoBench));
-          setMisc!(c;integrationScheme=scheme,Nck=Nck,max_cpu_time=20.0)
-          n=initializeAutonomousControl(c);
-          @bench string(scheme), Nck  optimize!($n)
-        end
+planner_name = "RTPP"
+case_names = ["s1","s2","s3","s4","s5","s6"]
+vehicle_name = "hmmwv"
+models =[:ThreeDOFv2, :KinematicBicycle2]
+model = models[1]
+
+@benchgroup "cases" ["case"] begin
+    for case_name in case_names
+        c = load(open(string(Pkg.dir("MAVs"),"/config/planner/",planner_name,".yaml")))
+        c["vehicle"] = load(open(string(Pkg.dir("MAVs"),"/config/vehicle/",vehicle_name,".yaml")))
+        c["goal"] = load(open(string(Pkg.dir("MAVs"),"/config/case/",case_name,".yaml")))["goal"]
+        c["X0"] = load(open(string(Pkg.dir("MAVs"),"/config/case/",case_name,".yaml")))["X0"]
+        c["obstacle"] = load(open(string(Pkg.dir("MAVs"),"/config/case/",case_name,".yaml")))["obstacle"]
+        setConfig(c, "misc";(:N=>15),(:model=>model),(:solver=>:KNITRO), (:integrationScheme=>:trapezoidal))
+        fixYAML(c)   # fix messed up data types
+        n = initializeAutonomousControl(c);
+        simMPC!(n;updateFunction=updateAutoParams!,checkFunction=checkCrash)
+        @bench case_name maximum($n.r.ocp.dfsOpt[:tSolve])
     end
 end
