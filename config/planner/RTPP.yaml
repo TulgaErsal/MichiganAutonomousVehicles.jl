@@ -29,31 +29,42 @@ misc:
   tfMax: 10 # maximum final time in MPC
   EP: 0.01   # small number to avoid singularities TODO move this from VehicleModels.jl
   ux: NaN   # for constant speed case
+  x0slackVariables: true
+  xFslackVariables: false
 
 weights:
-  ic: 0.0
+  ic: 100.0
+  x0: 1. #0.1
+  y0: 1. #0.1
+  v0: 10.0 #10.
+  r0: 10.0 #10.
+  psi0: 10.0 #1.
+  sa0: 2. #2.
+  ux0: 0.1 #0.1
+  ax0: 0.1 #0.1
+  xf: 100.
   goal: 10. # 100.
   psi: 0.01
   time: 2.
-  haf: 1.0e-5
+  haf: 1.0
   Fz: 0.5 # 0.1
   ce: 1.
   sa: 0.1
   sr: 1.
-  ax: 0.01
+  ax: 0.1
   jx: 0.01
   path: 1.0
   driver: 1.0
 
 tolerances:
-  ix: 0.05
-  iy: 0.05
-  iv: 0.05
-  ir: 0.05
-  ipsi: 0.07
-  isa: 0.0025
-  iu: 0.25
-  iax: 0.05
+  ix: 0.5 #0.05
+  iy: 0.5 #0.05
+  iv: 0.5 #0.05
+  ir: 0.5 #0.05
+  ipsi: 0.5 #0.07
+  isa: 0.025 #0.0025
+  iu: 0.5 #0.25
+  iax: 0.5 # 0.05
   fx: 5.0 # 5.0
   fy: 5.0 # 5.0 to try and improve optimization time
   fv: NaN # NOTE YAML file turns these into strings and to avoid complication these are currently set manually

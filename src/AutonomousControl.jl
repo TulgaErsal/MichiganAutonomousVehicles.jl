@@ -175,37 +175,30 @@ function updateAutoParams!(n)
   # obstacle information-> only show if it is in range at the start TODO
   goal_in_range = goalRange(n)
   if goal_in_range # TODO make a flag that indicates this switch has been flipped
+    # otherwise it will keep setting the same parameters..
     println("goal is in range")
+    c = n.ocp.params[5]
 
     # enforce final state constraints on x and y position
-    if !isnan(n.ocp.XF[1])
+    if !c["misc"]["xFslackVariables"]
       for st = 1:2
         setRHS(n.r.ocp.xfCon[st,1], +(n.ocp.XF[st]+n.ocp.XF_tol[st]))
         setRHS(n.r.ocp.xfCon[st,2], -(n.ocp.XF[st]-n.ocp.XF_tol[st]))
       end
-      # remove terms in cost function
-      setvalue(n.ocp.params[4][1],0.0)
-      setvalue(n.ocp.params[4][2],0.0)
-   end
+    else
+      # add in slack variables in cost function for final state constraints
+      setvalue(n.ocp.params[4][3],c["weights"]["xf"])
+    end
+
+    # remove terms in cost function for line to goal
+    setvalue(n.ocp.params[4][1],0.0)
+    setvalue(n.ocp.params[4][2],0.0)
 
     # relax LiDAR constraints
     setvalue(n.ocp.params[3][1], 1e6)
     setvalue(n.ocp.params[3][2],-1e6)
-
   end
   #NOTE assuming it is not going in and out of range
-  c = n.ocp.params[5]
-  if isequal(c["misc"]["model"],:ThreeDOFv2)
-    # update initial conditions
-    setvalue(n.ocp.params[4][3], n.ocp.X0[1])
-    setvalue(n.ocp.params[4][4], n.ocp.X0[2])
-    setvalue(n.ocp.params[4][5], n.ocp.X0[3])
-    setvalue(n.ocp.params[4][6], n.ocp.X0[4])
-    setvalue(n.ocp.params[4][7], n.ocp.X0[5])
-    setvalue(n.ocp.params[4][8], n.ocp.X0[6])
-    setvalue(n.ocp.params[4][9], n.ocp.X0[7])
-    setvalue(n.ocp.params[4][10], n.ocp.X0[8])
-  end
 
  return goal_in_range
 end
@@ -252,26 +245,6 @@ function fixYAML(c)
     end
   end
 
-  # NOTE these are not needed
-
-  #  elseif isequal(typeof(c[keyA][key]),Array{String,1})
-  #    @show tmp = c[keyA][key]
-  #    for i in length(tmp)
-  #      @show tmp[i]
-  #      if isequal(tmp[i],"NaN"); c[keyA][key][i] = NaN; end
-  #      @show c[keyA][key]
-
-#  for keyA in ["vehicle"]
-#    for (key,value) in c[keyA]
-#      if isequal(typeof(c[keyA][key]),String); c[keyA][key] = Float64(c[keyA][key]); end
-#    end
-#  end
-#  if c["solver"]["warm_start_init_point"]
-#    c["solver"]["warm_start_init_point"] = "yes"
-#  else
-#    c["solver"]["warm_start_init_point"] = "no"
-#  end
-
   return c
 end
 
@@ -285,9 +258,9 @@ function configProb!(n,c)
   #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed
   # configure problem
   if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
-    configure!(n;(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
+    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
   else
-    configure!(n;(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
+    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
   end
   return nothing
 end
@@ -353,7 +326,7 @@ function lidarConstraints!(n,c)
   if goalRange(n)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
-  elseif !isnan(n.ocp.XF[1])   # relax constraints on the final x and y position
+  else   # relax constraints on the final x and y position
     for st = 1:2
       for k in 1:2
         setRHS(n.r.ocp.xfCon[st,k], 1e6)
@@ -374,44 +347,43 @@ function objFunc!(n,c,tire_expr)
   # parameters
   if goalRange(n)
    println("\n goal in range")
+   @NLparameter(n.ocp.mdl, w_xf == c["weights"]["xf"])
    @NLparameter(n.ocp.mdl, w_goal_param == 0.0)
-   @NLparameter(n.ocp.mdl, w_psi_param == 0.0)
+   @NLparameter(n.ocp.mdl, w_psi_param == 0.0)  # NOTE this param is not in use
   else
-    @NLparameter(n.ocp.mdl, w_goal_param == c["weights"]["goal"])
-    @NLparameter(n.ocp.mdl, w_psi_param == c["weights"]["psi"])
+   @NLparameter(n.ocp.mdl, w_xf == 0.0)
+   @NLparameter(n.ocp.mdl, w_goal_param == c["weights"]["goal"])
+   @NLparameter(n.ocp.mdl, w_psi_param == c["weights"]["psi"])
   end
-  if isequal(c["misc"]["model"],:ThreeDOFv2)
-    @NLparameter(n.ocp.mdl, x0_param == c["X0"]["x"])
-    @NLparameter(n.ocp.mdl, y0_param == c["X0"]["yVal"])
-    @NLparameter(n.ocp.mdl, v0_param == c["X0"]["v"])
-    @NLparameter(n.ocp.mdl, r0_param == c["X0"]["r"])
-    @NLparameter(n.ocp.mdl, psi0_param == c["X0"]["psi"])
-    @NLparameter(n.ocp.mdl, sa0_param == c["X0"]["sa"])
-    @NLparameter(n.ocp.mdl, ux0_param == c["X0"]["ux"])
-    @NLparameter(n.ocp.mdl, ax0_param == c["X0"]["ax"])
-    obj_params = [w_goal_param,w_psi_param,x0_param,y0_param,v0_param,r0_param,psi0_param,sa0_param,ux0_param,ax0_param]
-  else
-    obj_params = [w_goal_param,w_psi_param]
-  end
+
+  obj_params = [w_goal_param,w_psi_param,w_xf]
   # penalize distance to goal
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
   if isequal(c["misc"]["model"],:ThreeDOFv2)
-    v = n.r.ocp.x[:,3]
-    r = n.r.ocp.x[:,4]
     psi = n.r.ocp.x[:,5]
-    sa = n.r.ocp.x[:,6]
-    ux = n.r.ocp.x[:,7]
-    ax = n.r.ocp.x[:,8]
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     psi = n.r.ocp.x[:,3]
   end
 
   goal_obj = @NLexpression(n.ocp.mdl,w_goal_param*((x[end] - c["goal"]["x"])^2 + (y[end] - c["goal"]["yVal"])^2)^0.5/(((x[1] - c["goal"]["x"])^2 + (y[1] - c["goal"]["yVal"])^2)^0.5 + c["misc"]["EP"]))
 
+  # minimizing the integral over the entire prediction horizon of the line that passes through the goal
+  haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ))
+
+  if c["misc"]["xFslackVariables"]
+    xf_obj = @NLexpression(n.ocp.mdl, w_xf*(n.ocp.xFs[1] + n.ocp.xFs[2]) )
+  else
+    xf_obj = 0
+  end
+
   if isequal(c["misc"]["model"],:ThreeDOFv2)
 
-    # match initial conditions with soft constraints
-    ic_obj = @NLexpression(n.ocp.mdl, c["weights"]["ic"]*((x[1]-x0_param)^2 + (y[1]-y0_param)^2 + (v[1] - v0_param)^2 + (r[1] - r0_param)^2 + (psi[1] - psi0_param)^2 + (sa[1] - sa0_param)^2 + (ux[1] - ux0_param)^2 + (ax[1] - ax0_param)^2)^0.5 )
+    # initial conditions slack variables
+    if c["misc"]["x0slackVariables"]
+      x0_obj = @NLexpression(n.ocp.mdl, c["weights"]["ic"]*(c["weights"]["x0"]*(n.ocp.x0s[1]) + c["weights"]["y0"]*(n.ocp.x0s[2]) + c["weights"]["v0"]*(n.ocp.x0s[3]) + c["weights"]["r0"]*(n.ocp.x0s[4]) + c["weights"]["psi0"]*(n.ocp.x0s[5]) + c["weights"]["sa0"]*(n.ocp.x0s[6]) + c["weights"]["ux0"]*(n.ocp.x0s[7]) + c["weights"]["ax0"]*(n.ocp.x0s[8])) )
+    else
+      x0_obj = 0
+    end
 
     # penalize difference between final heading angle and angle relative to the goal NOTE currently this is broken becasue atan2() is not available
     #psi_frg=@NLexpression(n.ocp.mdl,asin(c.g.y_ref-y[end])/(acos(c.g.x_ref-x[end]) + c["misc"]["EP"]) )
@@ -422,21 +394,13 @@ function objFunc!(n,c,tire_expr)
     # soft constraints on vertical tire load
     tire_obj = integrate!(n,tire_expr)
 
-    # minimizing the integral over the entire prediction horizon of the line that passes through the goal
-    haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ) )
-    #haf_obj = 0
-
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
-    @NLobjective(n.ocp.mdl, Min, goal_obj + ic_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
+    @NLobjective(n.ocp.mdl, Min, xf_obj + goal_obj + x0_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
-    # minimizing the integral over the entire prediction horizon of the line that passes through the goal
-    haf_obj=integrate!(n,:( $c["weights"]["haf"]*( sin($c["goal"]["psi"])*(x[j]-$c["goal"]["x"]) - cos($c["goal"]["psi"])*(y[j]-$c["goal"]["yVal"]) )^2 ) )
-
     # penalize control effort
-    #ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 + $c["weights"]["ax"]*ax[j]^2 ) ) )
-    ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 ) ) )
-    @NLobjective(n.ocp.mdl, Min, goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj + haf_obj )
+    ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 + $c["weights"]["ax"]*ax[j]^2 ) ) )
+    @NLobjective(n.ocp.mdl, Min, xf_obj + goal_obj + c["weights"]["time"]*n.ocp.tf + ce_obj + haf_obj )
   end
  return obj_params
 end
