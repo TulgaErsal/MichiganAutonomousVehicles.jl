@@ -2,18 +2,22 @@ misc:
   mode: OCP
   IPplant: ThreeDOFv1
   model: NaN             # function name
-  Xlims: [111.,250.]     # limit for x
-  Ylims: [-1., 140.]     # limit for Y
+  Xlims: [111.,250.]     # plotting limit for x
+  Ylims: [-1,140.]       # plotting limit for y
+  Xmin: NaN              # min limit for x in OCP
+  Xmax: NaN              # max limit for x in OCP
+  Ymin: NaN              # min limit for y in OCP
+  Ymax: NaN              # max limit for y in OCP
   tp: NaN                # prediction horizon (s)
   tex: 0.5               # execution horizon (s)
   sm: 4.5                # (m) distance to make sure we don't hit obstacle (for optimization)
-  sm2: 2.5                # (m) distance to make sure we don't hit obstacle (for crash checking)
+  sm2: 2.5               # (m) distance to make sure we don't hit obstacle (for crash checking)
   Lr: 50.                # LiDAR range (m)
   L_rd: 5.               # relaxation distance to LiDAR range
   Nck: NaN               # number of points per interval
   N: NaN                 # number of points in :tm methods
   solver: NaN            # either :IPOPT or :KNITRO
-  mpc_max_iter: 50        # an MPC parameter
+  mpc_max_iter: 50       # an MPC parameter
   PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
   finalTimeDV: true      # bool to indicate if the final time is a variable
@@ -27,7 +31,7 @@ misc:
   ux: NaN   # for constant speed case
 
 weights:
-  ic: .0
+  ic: 0.0
   goal: 10. # 100.
   psi: 0.01
   time: 2.
@@ -61,7 +65,7 @@ tolerances:
 
 solver:
   # settings for both KNITRO and IPOPT
-  outlev: 2 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
+  outlev: 0 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
   feastol_abs: 7e-2 # (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
   maxit: 500 # (c.m.solver==:Ipopt) ? :max_iter : :maxit
   maxtime_cpu: 30. # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu

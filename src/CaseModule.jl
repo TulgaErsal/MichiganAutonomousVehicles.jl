@@ -137,10 +137,10 @@ function case2dfs(c)
     ###################
     # misc. parameters
     dfs[:model] = c["misc"]["model"]
-    dfs[:Xmax] = c["misc"]["Xlims"][1]
-    dfs[:Xmin] = c["misc"]["Xlims"][2]
-    dfs[:Ymin] = c["misc"]["Ylims"][1]
-    dfs[:Ymax] = c["misc"]["Ylims"][2]
+    dfs[:Xmin] = c["misc"]["Xmin"]
+    dfs[:Xmax] = c["misc"]["Xmax"]
+    dfs[:Ymin] = c["misc"]["Ymin"]
+    dfs[:Ymax] = c["misc"]["Ymax"]
     dfs[:tp] = c["misc"]["tp"]
     dfs[:tex] = c["misc"]["tex"]
     dfs[:sms] = c["misc"]["sm"]
@@ -170,7 +170,7 @@ function case2dfs(c)
     # misc. parameters
     ###################
 
-    
+
     return dfs
 end
 
