@@ -57,7 +57,7 @@ Date Create: 2/1/2017, Last Modified: 4/08/2018 \n
 function initializeAutonomousControl(c)
 
  pa = Vpara(m=copy(c["vehicle"][:m]),Izz=copy(c["vehicle"][:Izz]), la=copy(c["vehicle"][:la]), lb=copy(c["vehicle"][:lb]), FzF0=copy(c["vehicle"][:FzF0]), FzR0=copy(c["vehicle"][:FzR0]), KZX=copy(c["vehicle"][:KZX]), KZYR=copy(c["vehicle"][:KZYR]), KZYF=copy(c["vehicle"][:KZYF]), AXC=copy(c["vehicle"][:AXC]),x_min=copy(c["misc"]["Xmin"]),x_max=copy(c["misc"]["Xmax"]),y_min=copy(c["misc"]["Ymin"]),y_max=copy(c["misc"]["Ymax"]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),sr_min=copy(c["vehicle"][:sr_min]),sr_max=copy(c["vehicle"][:sr_max]),jx_min=copy(c["vehicle"][:jx_min]),jx_max=copy(c["vehicle"][:jx_max]),FZ0=copy(c["vehicle"][:FZ0]),PCY1=copy(c["vehicle"][:PCY1]),PDY1=copy(c["vehicle"][:PDY1]),PDY2=copy(c["vehicle"][:PDY2]),PEY1=copy(c["vehicle"][:PEY1]),PEY2=copy(c["vehicle"][:PEY2]),PEY3=copy(c["vehicle"][:PEY3]),PKY1=copy(c["vehicle"][:PKY1]),PKY2=copy(c["vehicle"][:PKY2]),PHY1=copy(c["vehicle"][:PHY1]),PHY2=copy(c["vehicle"][:PHY2]),PVY1=copy(c["vehicle"][:PVY1]),PVY2=copy(c["vehicle"][:PVY2]),Caf=copy(c["vehicle"][:Caf]),Car=copy(c["vehicle"][:Car]),Fy_min=copy(c["vehicle"][:Fy_min]),Fy_max=copy(c["vehicle"][:Fy_max]),Fz_min=copy(c["vehicle"][:Fz_min]),Fz_off=copy(c["vehicle"][:Fz_off]),EP=copy(c["misc"]["EP"]))
- @unpack_Vpara pa
+ @unpack_Vpara pa # vehicle parameters
 
  if isequal(c["misc"]["model"],:ThreeDOFv2)
    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN]
@@ -78,7 +78,8 @@ function initializeAutonomousControl(c)
    error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle2 "))
  end
  n.s.ocp.tfMax = copy(c["misc"]["tfMax"])
- n.ocp.params = [pa]   # vehicle parameters
+ # need c for goalRange() in updateAutoParams!() which gets passed to simMpc!()
+ n.ocp.params = [pa,NaN,NaN,NaN,c]
 
  # TODO check if Chrono is being used
  if isequal(c["misc"]["model"],:ThreeDOFv2)
@@ -88,9 +89,13 @@ function initializeAutonomousControl(c)
   elseif isequal(c["misc"]["mode"], :IP)
     IPModel = ThreeDOFv1
   end
-  # define tolerances
+  # define tolerances on slack variables
   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]]
-  XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]]
+  if goalRange(n)
+    XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"], c["tolerances"]["fu"], c["tolerances"]["fax"]]
+  else
+    XF_tol = [1e6, 1e6, NaN, NaN, NaN, NaN, NaN, NaN]
+  end
   defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol)
 
           # 1  2  3  4  5    6   7   8
@@ -113,9 +118,13 @@ function initializeAutonomousControl(c)
    elseif isequal(c["misc"]["mode"], :IP)
      IPModel = ThreeDOFv1
    end
-   # define tolerances
+   # define tolerances on slack variables
    X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["ipsi"], c["tolerances"]["iu"]]
-   XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fpsi"], c["tolerances"]["fu"]]
+   if goalRange(n)
+    XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fpsi"], c["tolerances"]["fu"]]
+   else
+     XF_tol = [1e6,1e6,NaN,NaN]
+   end
    defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol)
 
            # 1  2   3   4
@@ -135,8 +144,7 @@ function initializeAutonomousControl(c)
  end
  configProb!(n,c)
 
- # need c for goalRange() in updateAutoParams!() which gets passed to simMpc!()
- n.ocp.params = [NaN,NaN,NaN,NaN,c]
+
  obs_params = obstacleAvoidanceConstraints!(n,c)
  LiDAR_params = lidarConstraints!(n,c)
  obj_params = objFunc!(n,c,tire_expr)
@@ -180,15 +188,12 @@ function updateAutoParams!(n)
     c = n.ocp.params[5]
 
     # enforce final state constraints on x and y position
-    if !c["misc"]["xFslackVariables"]
-      for st = 1:2
-        setRHS(n.r.ocp.xfCon[st,1], +(n.ocp.XF[st]+n.ocp.XF_tol[st]))
-        setRHS(n.r.ocp.xfCon[st,2], -(n.ocp.XF[st]-n.ocp.XF_tol[st]))
-      end
-    else
-      # add in slack variables in cost function for final state constraints
-      setvalue(n.ocp.params[4][3],c["weights"]["xf"])
-    end
+    # TODO consider throwing error if not using slack variables as they are not tested
+    setRHS(n.r.ocp.xfsCon[1], c["tolerances"]["fx"])
+    setRHS(n.r.ocp.xfsCon[2], c["tolerances"]["fy"])
+
+    # add in slack variables in cost function for final state constraints
+    setvalue(n.ocp.params[4][3],c["weights"]["xf"])
 
     # remove terms in cost function for line to goal
     setvalue(n.ocp.params[4][1],0.0)
@@ -295,7 +300,8 @@ function obstacleAvoidanceConstraints!(n,c)
   # constraint on position
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
 
-  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+c["misc"]["sm"])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+c["misc"]["sm"])^2))
+  sm = linspace(c["misc"]["sm1"],c["misc"]["sm2"],n.ocp.state.pts-1)
+  obs_con = @NLconstraint(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts-1], 1 <= ((x[(i+1)]-X_obs[j,i])^2)/((a[j]+sm[i])^2) + ((y[(i+1)]-Y_obs[j,i])^2)/((b[j]+sm[i])^2))
   newConstraint!(n,obs_con,:obs_con);
 
   return obs_params
@@ -326,12 +332,6 @@ function lidarConstraints!(n,c)
   if goalRange(n)   # relax LiDAR boundary constraints
      setvalue(LiDAR_param_1, 1e6)
      setvalue(LiDAR_param_2,-1e6)
-  else   # relax constraints on the final x and y position
-    for st = 1:2
-      for k in 1:2
-        setRHS(n.r.ocp.xfCon[st,k], 1e6)
-      end
-    end
   end
   LiDAR_params = [LiDAR_param_1,LiDAR_param_2]
   return LiDAR_params

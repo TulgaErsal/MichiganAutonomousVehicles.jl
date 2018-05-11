@@ -10,14 +10,15 @@ misc:
   Ymax: NaN              # max limit for y in OCP
   tp: NaN                # prediction horizon (s)
   tex: 0.5               # execution horizon (s)
-  sm: 4.5                # (m) distance to make sure we don't hit obstacle (for optimization)
-  sm2: 2.5               # (m) distance to make sure we don't hit obstacle (for crash checking)
+  sm: 2.                 # (m) distance to see if obstacle was hit (for crash checking)
+  sm1: 2.5               # (m) distance 1 to make sure we don't hit obstacle (for optimization)
+  sm2: 4.0               # (m) distance 2 to make sure we don't hit obstacle (for optimization)
   Lr: 50.                # LiDAR range (m)
   L_rd: 5.               # relaxation distance to LiDAR range
   Nck: NaN               # number of points per interval
   N: NaN                 # number of points in :tm methods
   solver: NaN            # either :IPOPT or :KNITRO
-  mpc_max_iter: 50       # an MPC parameter
+  mpc_max_iter: 30       # an MPC parameter
   PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
   finalTimeDV: true      # bool to indicate if the final time is a variable
@@ -30,7 +31,7 @@ misc:
   EP: 0.01   # small number to avoid singularities TODO move this from VehicleModels.jl
   ux: NaN   # for constant speed case
   x0slackVariables: true
-  xFslackVariables: false
+  xFslackVariables: true
 
 weights:
   ic: 100.0
@@ -45,7 +46,7 @@ weights:
   xf: 100.
   goal: 10. # 100.
   psi: 0.01
-  time: 2.
+  time: 10.
   haf: 1.0
   Fz: 0.5 # 0.1
   ce: 1.
@@ -66,8 +67,8 @@ tolerances:
   iu: 0.5 #0.25
   iax: 0.5 # 0.05
   fx: 5.0 # 5.0
-  fy: 5.0 # 5.0 to try and improve optimization time
-  fv: NaN # NOTE YAML file turns these into strings and to avoid complication these are currently set manually
+  fy: 5.0 # 5.0
+  fv: NaN # NOTE YAML file turns these into strings
   fr: NaN
   fpsi: NaN
   fsa: NaN
