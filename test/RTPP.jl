@@ -1,6 +1,6 @@
 planner_name = "RTPP"
 vehicle_name = "hmmwv"
-cases = ["s1","s2"]
+cases = ["s1","s2","s3","s4","s5","s6"]
 models =[:ThreeDOFv2, :KinematicBicycle2]
 
 c = load(open(string(Pkg.dir("MAVs"),"/config/planner/",planner_name,".yaml")))

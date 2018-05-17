@@ -17,7 +17,7 @@ misc:
   L_rd: 5.               # relaxation distance to LiDAR range
   Nck: NaN               # number of points per interval
   N: NaN                 # number of points in :tm methods
-  solver: NaN            # either :IPOPT or :KNITRO
+  solver: NaN            # either Ipopt of KNITRO
   mpc_max_iter: 30       # an MPC parameter
   PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
@@ -32,6 +32,7 @@ misc:
   ux: NaN   # for constant speed case
   x0slackVariables: true
   xFslackVariables: true
+  movingObstacles: true
 
 weights:
   ic: 100.0
@@ -61,7 +62,7 @@ tolerances:
   ix: 0.5 #0.05
   iy: 0.5 #0.05
   iv: 0.5 #0.05
-  ir: 0.5 #0.05
+  ir: 0.15 #0.05
   ipsi: 0.5 #0.07
   isa: 0.025 #0.0025
   iu: 0.5 #0.25

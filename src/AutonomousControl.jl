@@ -294,8 +294,13 @@ function obstacleAvoidanceConstraints!(n,c)
   obs_params = [a,b,X_0,Y_0,speed_x,speed_y,Q]
 
   # obstacle postion after the initial postion
-  X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[i])
-  Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[i])
+  if c["misc"]["movingObstacles"]
+    X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[i])
+    Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[i])
+  else
+    X_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], X_0[j] + speed_x[j]*n.ocp.tV[1])
+    Y_obs = @NLexpression(n.ocp.mdl, [j=1:Q,i=1:n.ocp.state.pts], Y_0[j] + speed_y[j]*n.ocp.tV[1])
+  end
 
   # constraint on position
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
