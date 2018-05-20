@@ -3,7 +3,7 @@ misc:
   IPplant: ThreeDOFv1
   model: NaN             # function name
   Xlims: [111.,250.]     # plotting limit for x
-  Ylims: [-1,140.]       # plotting limit for y
+  Ylims: [-1,130.]       # plotting limit for y
   Xmin: NaN              # min limit for x in OCP
   Xmax: NaN              # max limit for x in OCP
   Ymin: NaN              # min limit for y in OCP
@@ -18,7 +18,7 @@ misc:
   Nck: NaN               # number of points per interval
   N: NaN                 # number of points in :tm methods
   solver: NaN            # either Ipopt of KNITRO
-  mpc_max_iter: 30       # an MPC parameter
+  mpc_max_iter: 200      # an MPC parameter
   PredictX0: true        # if the state that the vehicle will be at when the optimization is finished is to be predicted
   FixedTp: true          # fixed final time for predicting X0
   finalTimeDV: true      # bool to indicate if the final time is a variable
@@ -48,7 +48,7 @@ weights:
   goal: 10. # 100.
   psi: 0.01
   time: 10.
-  haf: 1.0
+  haf: 1.
   Fz: 0.5 # 0.1
   ce: 1.
   sa: 0.1
@@ -62,7 +62,7 @@ tolerances:
   ix: 0.5 #0.05
   iy: 0.5 #0.05
   iv: 0.5 #0.05
-  ir: 0.15 #0.05
+  ir: 0.05 #0.15
   ipsi: 0.5 #0.07
   isa: 0.025 #0.0025
   iu: 0.5 #0.25
