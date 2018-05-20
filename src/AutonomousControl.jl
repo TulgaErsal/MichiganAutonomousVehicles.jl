@@ -150,7 +150,7 @@ function initializeAutonomousControl(c)
  obj_params = objFunc!(n,c,tire_expr)
                #  1      2          3          4       5
  n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
- initOpt!(n;save=true,evalConstraints=true)
+ initOpt!(n;save=true,evalConstraints=c["misc"]["evalConstraints"])
 
  # set mpc parameters
  if isequal(c["misc"]["model"],:ThreeDOFv2)
@@ -161,7 +161,7 @@ function initializeAutonomousControl(c)
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN]
  end
 
- defineMPC!(n;mode=c["misc"]["mode"],goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
+ defineMPC!(n;onlyOptimal=c["misc"]["onlyOptimal"],mode=c["misc"]["mode"],goal=goal,goalTol=goalTol,fixedTp=c["misc"]["FixedTp"],predictX0=c["misc"]["PredictX0"],tp=c["misc"]["tp"],tex=copy(c["misc"]["tex"]),maxSim=copy(c["misc"]["mpc_max_iter"]))
  if isequal(c["misc"]["mode"], :OCP)
    defineIP!(n,IPModel)
  elseif isequal(c["misc"]["mode"], :IP) # NOTE for now assuming that the ThreeDOFv1 is always used for the IP

@@ -33,6 +33,8 @@ misc:
   x0slackVariables: true
   xFslackVariables: true
   movingObstacles: true
+  onlyOptimal: false
+  evalConstraints: false
 
 weights:
   ic: 100.0
