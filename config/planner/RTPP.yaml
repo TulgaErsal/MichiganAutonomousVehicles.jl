@@ -35,6 +35,7 @@ misc:
   movingObstacles: true
   onlyOptimal: false
   evalConstraints: false
+  ocpSave: true
 
 weights:
   ic: 100.0

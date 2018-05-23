@@ -150,7 +150,7 @@ function initializeAutonomousControl(c)
  obj_params = objFunc!(n,c,tire_expr)
                #  1      2          3          4       5
  n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
- initOpt!(n;save=true,evalConstraints=c["misc"]["evalConstraints"])
+ initOpt!(n;save=c["misc"]["ocpSave"],evalConstraints=c["misc"]["evalConstraints"])
 
  # set mpc parameters
  if isequal(c["misc"]["model"],:ThreeDOFv2)
