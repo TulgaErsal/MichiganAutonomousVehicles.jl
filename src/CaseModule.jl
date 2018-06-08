@@ -118,6 +118,7 @@ function case2dfs(c)
     dfs[:xRef] = c["goal"]["x"]
     dfs[:yRef] = c["goal"]["yVal"]
     dfs[:psiRef] = c["goal"]["psi"]
+    dfs[:goalTol] = c["goal"]["tol"]
     # goal
     ###############
 
