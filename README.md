@@ -1,6 +1,6 @@
 # Michigan Autonomous Vehicles (MAVs)
 
-[![Travis](https://travis-ci.org/JuliaMPC/MAVs.jl.svg?branch=master)](https://travis-ci.org/JuliaMPC/MAVs.jl)
+[![Travis](https://travis-ci.org/JuliaMPC/MichiganAutonomousVehicles.jl.svg?branch=master)](https://travis-ci.org/JuliaMPC/MichiganAutonomousVehicles.jl)
 
 julia packages:
 ```
@@ -13,5 +13,5 @@ Pkg.clone("https://github.com/JuliaMPC/MAVs.jl")
 
 To test:
 ```
-Pkg.test("MAVs")
+Pkg.test("MichiganAutonomousVehicles")
 ```
