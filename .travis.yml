@@ -40,7 +40,7 @@ script:
   - julia -e 'Pkg.add("Ipopt")'
   - julia -e 'Pkg.build("Ipopt")'
   - julia -e 'Pkg.clone(pwd())'
-  - julia -e 'Pkg.test("MAVs")'
+  - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
 
 after_script:
   - killall roscore
