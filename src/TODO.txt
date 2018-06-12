@@ -3,16 +3,10 @@ TODO
 ==================
 # High Priority #
 ==================
-1) now that the LiDAR is in there try to remove the constraints on position
-2) add obstacle info as you go
-3) figure out why the thing is not trying to get to the goal!!
 
 ===================
 # Medium Priority #
 ===================
-1) consider having a check to see if the params need to be updated
-2)  consider the redundant constraints on x and y limits..
-3) careful with setRHS and >= =<
 
 =================
 # Low Priority #

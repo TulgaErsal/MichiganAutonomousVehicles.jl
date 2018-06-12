@@ -1,6 +1,6 @@
 isdefined(Base, :__precompile__) && __precompile__()
 
-module MAVs
+module MichiganAutonomousVehicles
 using NLOptControl
 using VehicleModels
 import YAML.load
