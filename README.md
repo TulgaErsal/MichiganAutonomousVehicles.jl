@@ -8,7 +8,7 @@ Pkg.add("VehicleModels")
 Pkg.add("NLOptControl")
 Pkg.checkout("VehicleModels")  # to use master
 Pkg.checkout("NLOptControl")
-Pkg.clone("https://github.com/JuliaMPC/MAVs.jl")
+Pkg.clone("https://github.com/JuliaMPC/MichiganAutonomousVehicles.jl")
 ```
 
 To test:
