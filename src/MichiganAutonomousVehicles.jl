@@ -30,8 +30,12 @@ export
       avMpc,
       solverConfig,
       fixYAML,
-
-      load # from YAML
+      load, # from YAML
+      configProb!,
+      obstacleAvoidanceConstraints!,
+      lidarConstraints!,
+      objFunc!,
+      goalRange
 
       # SharedControl.jl
     #  initializeSharedControl!,
