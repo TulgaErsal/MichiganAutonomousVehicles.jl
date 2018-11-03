@@ -19,7 +19,7 @@ before_install:
   - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
   - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
   - sudo apt-get update
-  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs
+  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs python-yaml
   - sudo rosdep init
   - rosdep update
 
@@ -33,9 +33,8 @@ before_script:
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.add("Ipopt")'
-  - julia -e 'Pkg.build("Ipopt")'
   - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'ENV["PYTHON"]="/usr/bin/python2.7"; Pkg.build("PyCall");'
   - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
 
 after_script:

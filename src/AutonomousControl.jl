@@ -15,7 +15,12 @@ export
       solverConfig,
       avMpc,
       OptData,
-      fixYAML
+      fixYAML,
+      configProb!,    #TMP
+      obstacleAvoidanceConstraints!,
+      lidarConstraints!,
+      objFunc!,
+      goalRange
 
 type OptData
       t
