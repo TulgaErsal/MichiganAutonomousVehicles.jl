@@ -28,7 +28,7 @@ misc:
   integrationScheme: NaN
   tfMax: 10 # maximum final time in MPC
   EP: 0.01   # small number to avoid singularities TODO move this from VehicleModels.jl
-  ux: NaN   # for constant speed case
+  constantSpeed: false
   slackVariables: true
 
 weights:
