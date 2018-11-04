@@ -1,6 +1,6 @@
 misc:
   mode: OCP
-  IPplant: ThreeDOFv1
+  IPplant: KinematicBicycle2
   model: NaN             # function name
   Xlims: [111.,250.]     # plotting limit for x
   Ylims: [-1,130.]       # plotting limit for y
@@ -29,7 +29,6 @@ misc:
   integrationScheme: NaN
   tfMax: 10. # maximum final time in MPC
   EP: 0.01   # small number to avoid singularities TODO move this from VehicleModels.jl
-  constantSpeed: false
   x0slackVariables: true
   xFslackVariables: true
   movingObstacles: true
