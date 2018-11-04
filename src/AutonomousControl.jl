@@ -64,49 +64,57 @@ function initializeAutonomousControl(c)
  pa = Vpara(m=copy(c["vehicle"][:m]),Izz=copy(c["vehicle"][:Izz]), la=copy(c["vehicle"][:la]), lb=copy(c["vehicle"][:lb]), FzF0=copy(c["vehicle"][:FzF0]), FzR0=copy(c["vehicle"][:FzR0]), KZX=copy(c["vehicle"][:KZX]), KZYR=copy(c["vehicle"][:KZYR]), KZYF=copy(c["vehicle"][:KZYF]), AXC=copy(c["vehicle"][:AXC]),x_min=copy(c["misc"]["Xmin"]),x_max=copy(c["misc"]["Xmax"]),y_min=copy(c["misc"]["Ymin"]),y_max=copy(c["misc"]["Ymax"]),sa_min=copy(c["vehicle"][:sa_min]),sa_max=copy(c["vehicle"][:sa_max]),psi_min=copy(c["vehicle"][:psi_min]),psi_max=copy(c["vehicle"][:psi_max]),u_min=copy(c["vehicle"][:u_min]),u_max=copy(c["vehicle"][:u_max]),sr_min=copy(c["vehicle"][:sr_min]),sr_max=copy(c["vehicle"][:sr_max]),jx_min=copy(c["vehicle"][:jx_min]),jx_max=copy(c["vehicle"][:jx_max]),FZ0=copy(c["vehicle"][:FZ0]),PCY1=copy(c["vehicle"][:PCY1]),PDY1=copy(c["vehicle"][:PDY1]),PDY2=copy(c["vehicle"][:PDY2]),PEY1=copy(c["vehicle"][:PEY1]),PEY2=copy(c["vehicle"][:PEY2]),PEY3=copy(c["vehicle"][:PEY3]),PKY1=copy(c["vehicle"][:PKY1]),PKY2=copy(c["vehicle"][:PKY2]),PHY1=copy(c["vehicle"][:PHY1]),PHY2=copy(c["vehicle"][:PHY2]),PVY1=copy(c["vehicle"][:PVY1]),PVY2=copy(c["vehicle"][:PVY2]),Caf=copy(c["vehicle"][:Caf]),Car=copy(c["vehicle"][:Car]),Fy_min=copy(c["vehicle"][:Fy_min]),Fy_max=copy(c["vehicle"][:Fy_max]),Fz_min=copy(c["vehicle"][:Fz_min]),Fz_off=copy(c["vehicle"][:Fz_off]),EP=copy(c["misc"]["EP"]))
  @unpack_Vpara pa # vehicle parameters
 
- if c["misc"]["constantSpeed"];
-     u_min = c["X0"]["ux"]; u_max = c["X0"]["ux"];
-     ax_min = 0.0; ax_max = 0.0;
-     if !isequal(c["X0"]["ax"],0.0)
-         error("Cannot do constant speed when initial acceleration is non-zero.")
-     end
-     if isequal(c["misc"]["model"],:ThreeDOFv2)
-         jx_min = 0.0; jx_max = 0.0;
-     end
- elseif isequal(c["misc"]["model"],:ThreeDOFv2)
+ #if c["misc"]["constantSpeed"];
+#     u_min = c["X0"]["ux"]; u_max = c["X0"]["ux"];
+#     ax_min = 0.0; ax_max = 0.0;
+#     if !isequal(c["X0"]["ax"],0.0)
+#         error("Cannot do constant speed when initial acceleration is non-zero.")
+#     end
+#     if isequal(c["misc"]["model"],:ThreeDOFv2)
+#         jx_min = 0.0; jx_max = 0.0;
+#     end
+ #elseif isequal(c["misc"]["model"],:ThreeDOFv2)
      # not adding linear constraints along with nonlinear acceleration constraints
-     ax_min = NaN; ax_max = NaN;
- end
- if isequal(c["misc"]["model"],:ThreeDOFv2)
-   XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN]
-  # XF = [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
-   XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, ax_min]
-   XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, ax_max]
-   CL = [sr_min, jx_min]; CU = [sr_max, jx_max]
-   X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])]
-   n = define(numStates=8,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
- elseif isequal(c["misc"]["model"],:KinematicBicycle2)
-   XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]),NaN,NaN]
-   XL = [x_min,y_min,psi_min,u_min]
-   XU = [x_max,y_max,psi_max,u_max]
-   CL = [sa_min,ax_min]; CU = [sa_max,ax_max]
-   X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["psi"]),copy(c["X0"]["ux"])]
-   n = define(numStates=4,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
- else
-   error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 || :KinematicBicycle2 "))
- end
+#     ax_min = NaN; ax_max = NaN;
+ #bend
+if isequal(c["misc"]["model"],:ThreeDOFv2)
+    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN]
+    # XF = [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
+    XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN]
+    XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN]
+    CL = [sr_min, jx_min]; CU = [sr_max, jx_max]
+    X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"]),copy(c["X0"]["ux"]),copy(c["X0"]["ax"])]
+    n = define(numStates=8,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+elseif isequal(c["misc"]["model"],:ThreeDOFv3)
+    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN]
+    XL = [x_min, y_min, NaN, NaN, psi_min, sa_min]
+    XU = [x_max, y_max, NaN, NaN, psi_max, sa_max]
+    CL = [sr_min]; CU = [sr_max]
+    X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["v"]),copy(c["X0"]["r"]),copy(c["X0"]["psi"]),copy(c["X0"]["sa"])]
+    n = define(numStates=6,numControls=1,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+elseif isequal(c["misc"]["model"],:KinematicBicycle2)
+    XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]),NaN,NaN]
+    XL = [x_min,y_min,psi_min,u_min]
+    XU = [x_max,y_max,psi_max,u_max]
+    CL = [sa_min,ax_min]; CU = [sa_max,ax_max]
+    X0 = [copy(c["X0"]["x"]),copy(c["X0"]["yVal"]),copy(c["X0"]["psi"]),copy(c["X0"]["ux"])]
+    n = define(numStates=4,numControls=2,X0=copy(X0),XF=XF,XL=XL,XU=XU,CL=CL,CU=CU)
+else
+    error(string("c[misc][model] = " ,c["misc"]["model"]," needs to be set to either; :ThreeDOFv2 ||:ThreeDOFv3 || :KinematicBicycle2 "))
+end
  n.s.ocp.tfMax = copy(c["misc"]["tfMax"])
  # need c for goalRange() in updateAutoParams!() which gets passed to simMpc!()
  n.ocp.params = [pa,NaN,NaN,NaN,c]
 
- # TODO check if Chrono is being used
- if isequal(c["misc"]["model"],:ThreeDOFv2)
+  # TODO check if Chrono is being used
+if isequal(c["misc"]["model"],:ThreeDOFv2)
 
-  if isequal(c["misc"]["mode"], :OCP)
-    IPModel = ThreeDOFv2
-  elseif isequal(c["misc"]["mode"], :IP)
-    IPModel = ThreeDOFv1
-  end
+  #if isequal(c["misc"]["mode"], :OCP)
+   IPModel = ThreeDOFv2
+ # elseif isequal(c["misc"]["mode"], :IP)
+#    IPModel = ThreeDOFv1
+  #end
+
   # define tolerances on slack variables
   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"], c["tolerances"]["iu"], c["tolerances"]["iax"]]
   if goalRange(n)
@@ -130,12 +138,43 @@ function initializeAutonomousControl(c)
   dx,con,tire_expr = ThreeDOFv2_expr(n)
   dynamics!(n,dx)
   constraints!(n,con)
- elseif isequal(c["misc"]["model"],:KinematicBicycle2)
-   if isequal(c["misc"]["mode"], :OCP)
-     IPModel = KinematicBicycle2
-   elseif isequal(c["misc"]["mode"], :IP)
-     IPModel = ThreeDOFv1
+elseif isequal(c["misc"]["model"],:ThreeDOFv3)
+
+   #if isequal(c["misc"]["mode"], :OCP)
+   IPModel = ThreeDOFv3
+#   elseif isequal(c["misc"]["mode"], :IP)
+#     IPModel = ThreeDOFv1
+ #  end
+
+   # define tolerances on slack variables
+   X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["iv"], c["tolerances"]["ir"], c["tolerances"]["ipsi"], c["tolerances"]["isa"]]
+   if goalRange(n)
+     XF_tol = [c["tolerances"]["fx"], c["tolerances"]["fy"], c["tolerances"]["fv"], c["tolerances"]["fr"], c["tolerances"]["fpsi"], c["tolerances"]["fsa"]]
+   else
+     XF_tol = [1e6, 1e6, NaN, NaN, NaN, NaN]
    end
+   defineTolerances!(n;X0_tol=X0_tol,XF_tol=XF_tol)
+
+           # 1  2  3  4  5    6
+   names = [:x,:y,:v,:r,:psi,:sa];
+   descriptions = ["X (m)","Y (m)","Lateral Velocity (m/s)", "Yaw Rate (rad/s)","Yaw Angle (rad)", "Steering Angle (rad)"];
+   states!(n,names,descriptions=descriptions)
+
+            # 1
+   names = [:sr];
+   descriptions = ["Steering Rate (rad/s)"];
+   controls!(n,names,descriptions=descriptions)
+
+   # dynamic constraints and additional constraints
+   dx,con,tire_expr = ThreeDOFv3_expr(n)
+   dynamics!(n,dx)
+   constraints!(n,con)
+elseif isequal(c["misc"]["model"],:KinematicBicycle2)
+  # if isequal(c["misc"]["mode"], :OCP)
+    IPModel = KinematicBicycle2
+  # elseif isequal(c["misc"]["mode"], :IP)
+#     IPModel = ThreeDOFv1
+  # end
    # define tolerances on slack variables
    X0_tol = [c["tolerances"]["ix"], c["tolerances"]["iy"], c["tolerances"]["ipsi"], c["tolerances"]["iu"]]
    if goalRange(n)
@@ -173,6 +212,9 @@ function initializeAutonomousControl(c)
  if isequal(c["misc"]["model"],:ThreeDOFv2)
    goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN,NaN,NaN,NaN,NaN]
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN,NaN,NaN,NaN,NaN]
+ elseif isequal(c["misc"]["model"],:ThreeDOFv3)
+   goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN,NaN,NaN]
+   goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN,NaN,NaN]
  elseif isequal(c["misc"]["model"],:KinematicBicycle2)
    goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN]
    goalTol = [c["goal"]["tol"],c["goal"]["tol"],NaN,NaN]
@@ -387,7 +429,7 @@ function objFunc!(n,c,tire_expr)
   obj_params = [w_goal_param,w_psi_param,w_xf]
   # penalize distance to goal
   x = n.r.ocp.x[:,1];y = n.r.ocp.x[:,2]; # pointers to JuMP variables
-  if isequal(c["misc"]["model"],:ThreeDOFv2)
+  if isequal(c["misc"]["model"],:ThreeDOFv2) || isequal(c["misc"]["model"],:ThreeDOFv3)
     psi = n.r.ocp.x[:,5]
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     psi = n.r.ocp.x[:,3]
@@ -405,7 +447,6 @@ function objFunc!(n,c,tire_expr)
   end
 
   if isequal(c["misc"]["model"],:ThreeDOFv2)
-
     # initial conditions slack variables
     if c["misc"]["x0slackVariables"]
       x0_obj = @NLexpression(n.ocp.mdl, c["weights"]["ic"]*(c["weights"]["x0"]*(n.ocp.x0s[1]) + c["weights"]["y0"]*(n.ocp.x0s[2]) + c["weights"]["v0"]*(n.ocp.x0s[3]) + c["weights"]["r0"]*(n.ocp.x0s[4]) + c["weights"]["psi0"]*(n.ocp.x0s[5]) + c["weights"]["sa0"]*(n.ocp.x0s[6]) + c["weights"]["ux0"]*(n.ocp.x0s[7]) + c["weights"]["ax0"]*(n.ocp.x0s[8])) )
@@ -425,6 +466,21 @@ function objFunc!(n,c,tire_expr)
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2)+$c["weights"]["jx"]*(jx[j]^2))) )
     @NLobjective(n.ocp.mdl, Min, xf_obj + goal_obj + x0_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
+  elseif isequal(c["misc"]["model"],:ThreeDOFv3)
+      # initial conditions slack variables
+      if c["misc"]["x0slackVariables"]
+        x0_obj = @NLexpression(n.ocp.mdl, c["weights"]["ic"]*(c["weights"]["x0"]*(n.ocp.x0s[1]) + c["weights"]["y0"]*(n.ocp.x0s[2]) + c["weights"]["v0"]*(n.ocp.x0s[3]) + c["weights"]["r0"]*(n.ocp.x0s[4]) + c["weights"]["psi0"]*(n.ocp.x0s[5]) + c["weights"]["sa0"]*(n.ocp.x0s[6]) ) )
+      else
+        x0_obj = 0
+      end
+      psi_obj = 0
+      # soft constraints on vertical tire load
+      tire_obj = integrate!(n,tire_expr)
+
+      # penalize control effort
+      ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*(sa[j]^2)+$c["weights"]["sr"]*(sr[j]^2))) )
+      @NLobjective(n.ocp.mdl, Min, xf_obj + goal_obj + x0_obj + psi_obj + c["weights"]["Fz"]*tire_obj + haf_obj + c["weights"]["time"]*n.ocp.tf + ce_obj )
+
   elseif isequal(c["misc"]["model"],:KinematicBicycle2)
     # penalize control effort
     ce_obj = integrate!(n,:($c["weights"]["ce"]*($c["weights"]["sa"]*sa[j]^2 + $c["weights"]["ax"]*ax[j]^2 ) ) )
