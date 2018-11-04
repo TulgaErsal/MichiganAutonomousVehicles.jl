@@ -13,7 +13,9 @@ notifications:
 
 addons:
       apt_packages:
-        - gfortran
+       - gfortran
+       - liblapack-dev
+       - libblas-dev
 
 before_install:
   - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
