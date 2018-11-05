@@ -35,10 +35,11 @@ before_script:
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'Pkg.add("PyCall")'
   - julia -e 'ENV["PYTHON"]="/usr/bin/python2.7"; Pkg.build("PyCall");'
   - julia -e 'Pkg.add("VehicleModels")'
   - julia -e 'Pkg.checkout("VehicleModels")'
+  - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
 
 after_script:
