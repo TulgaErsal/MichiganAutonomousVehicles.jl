@@ -18,6 +18,8 @@ addons:
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.add("PyCall")'
+  - julia -e 'ENV["PYTHON"]="/usr/bin/python2.7"; Pkg.build("PyCall");'
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.clone("https://github.com/JuliaMPC/NLOptControl.jl")'
   - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
