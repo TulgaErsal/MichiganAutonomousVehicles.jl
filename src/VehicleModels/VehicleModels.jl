@@ -6,7 +6,9 @@ using Interpolations
 using OrdinaryDiffEq
 using DiffEqBase
 using NLOptControl  # to use newConstraint!() and interpolateLagrange!() for checkCrash()
-
+using Plots
+import Plots.@layout
+ 
 # funcitons in the VehicleModels.jl package
 include("parameters.jl")
 include("Three_DOF/Three_DOF.jl")
