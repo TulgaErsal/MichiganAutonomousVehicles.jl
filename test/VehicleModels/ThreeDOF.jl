@@ -50,3 +50,11 @@ function threeDOFv3_test1(n)
   end
   return maximum(A)
 end
+
+@testset "threeDOF" begin
+    n = NLOpt(); # constructor for test
+    n.ocp.params = [Vpara()];
+    @test threeDOFv1_test1(n) ≈ 0 atol=tol
+    @test threeDOFv2_test1(n) ≈ 0 atol=tol
+    @test threeDOFv3_test1(n) ≈ 0 atol=tol
+end
