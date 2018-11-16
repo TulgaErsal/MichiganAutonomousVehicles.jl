@@ -12,6 +12,7 @@ include("parameters.jl")
 include("Three_DOF/Three_DOF.jl")
 include("KinematicBicycle/KinematicBicycle.jl")
 include("utils.jl")
+include("Plots/VehicleModels_plots.jl")
 
 export
   #########
@@ -57,6 +58,16 @@ export
 
   # Parameters.jl
   @unpack,
-  @pack
+  @pack,
+
+  # Plots
+  obstaclePlot,
+  trackPlot,
+  mainSim,
+  posterP,
+  posPlot,
+  vtPlot,
+  pSimGR,
+  axLimsPlot
 
 end # module
