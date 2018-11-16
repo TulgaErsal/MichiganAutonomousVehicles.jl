@@ -1,12 +1,11 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-julia:
-  - 0.6
 sudo: required
-dist: trusty
 os:
   - linux
-dist: trusty
+
+julia:
+  - 0.6
 
 notifications:
   email: false
@@ -17,30 +16,7 @@ addons:
        - liblapack-dev
        - libblas-dev
 
-before_install:
-  - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
-  - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
-  - sudo apt-get update
-  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs python-yaml
-  - sudo rosdep init
-  - rosdep update
-
-before_script:
-  - export PATH=/usr/bin:$PATH
-  - source /opt/ros/indigo/setup.sh
-  - roscore &
-  - sleep 5
-  - python test/echonode.py &
-  - sleep 5
-
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.add("PyCall")'
-  - julia -e 'ENV["PYTHON"]="/usr/bin/python2.7"; Pkg.build("PyCall");'
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
-
-after_script:
-  - killall roscore
-  - killall python
-  - sleep 5
