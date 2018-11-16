@@ -1,9 +1,9 @@
 using MichiganAutonomousVehicles
 using NLOptControl
-using VehicleModels
 using Parameters
 using DataFrames
 
 using Base.Test
 
-include("hmmwv.jl")
+include("AutonomousControl/hmmwv.jl")
+include("VehicleModels/runtests.jl")
