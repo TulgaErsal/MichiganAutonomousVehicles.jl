@@ -8,6 +8,9 @@ using RobotOS
 include("CaseModule.jl")
 using .CaseModule
 
+include("VehicleModels/VehicleModels.jl")
+using .VehicleModels
+
 export
       initializeAutonomousControl,
       updateAutoParams!,
