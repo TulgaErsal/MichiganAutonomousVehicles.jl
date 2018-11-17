@@ -22,7 +22,6 @@ before_install:
   - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
   - sudo apt-get clean
   - sudo apt-get update
-  - sudo apt-get upgrade
   - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs python-yaml
   - sudo rosdep init
   - rosdep update
@@ -40,6 +39,7 @@ script:
   - julia -e 'Pkg.add("PyCall")'
   - julia -e 'ENV["PYTHON"]="/usr/bin/python2.7"; Pkg.build("PyCall");'
   - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'Pkg.checkout("NLOptControl")'
   - julia -e 'Pkg.test("MichiganAutonomousVehicles")'
 
 after_script:
