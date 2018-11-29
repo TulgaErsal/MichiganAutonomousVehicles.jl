@@ -16,13 +16,13 @@ addons:
        - gfortran
        - liblapack-dev
        - libblas-dev
-
+       - python-yaml
+       
 before_install:
   - sudo apt-add-repository -y "deb http://packages.ros.org/ros/ubuntu trusty main"
   - wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
-  - sudo apt-get clean
   - sudo apt-get update
-  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs python-yaml
+  - sudo apt-get -y install ros-indigo-ros-base ros-indigo-common-msgs
   - sudo rosdep init
   - rosdep update
 
