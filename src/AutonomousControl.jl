@@ -37,18 +37,23 @@ Author: Huckleberry Febbo, Graduate Student, University of Michigan
 Date Create: 2/15/2018, Last Modified: 3/12/2018 \n
 -------------------------------------------------------------------------------------\n
 """
-function solverConfig(c)
+function solverConfig(c,init)
+
+   if init      # initially giving solver more time
+       maxtime = c["solver"]["maxtime_cpu_init"]
+   else
+       maxtime = c["solver"]["maxtime_cpu"]
+   end
+
   # settings for both KNITRO and IPOPT
   outlev = (c["misc"]["solver"]==:Ipopt) ? :print_level : :outlev
   feastol_abs = (c["misc"]["solver"]==:Ipopt) ? :constr_viol_tol : :feastol_abs
   maxit = (c["misc"]["solver"]==:Ipopt) ? :max_iter : :maxit
   maxtime_cpu = (c["misc"]["solver"]==:Ipopt) ? :max_cpu_time : :maxtime_cpu
-  #S1 = ((:name=>c.m.solver),(outlev=>c.s.outlev),(feastol_abs=>c.s.feastol_abs),(maxit=>c.s.maxit),(maxtime_cpu=>c.s.maxtime_cpu),(maxit=>c.s.maxit))
  if c["misc"]["solver"] == :KNITRO
-   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]),(:algorithm=>c["solver"]["algorithm"]),(:bar_murule=>c["solver"]["bar_murule"]),(:linsolver=>c["solver"]["linsolver"]),(:cg_pmem=>c["solver"]["cg_pmem"]),(:bar_initpt=>c["solver"]["bar_initpt"]),(:bar_penaltycons=>c["solver"]["bar_penaltycons"]),(:bar_penaltyrule=>c["solver"]["bar_penaltyrule"]),(:bar_switchrule=>c["solver"]["bar_switchrule"]),(:linesearch=>c["solver"]["linesearch"]))
+   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>maxtime),(maxit=>c["solver"]["maxit"]),(:ftol=>c["solver"]["ftol"]),(:feastol=>c["solver"]["feastol"]),(:ftol_iters=>c["solver"]["ftol_iters"]),(:infeastol=>c["solver"]["infeastol"]),(:maxfevals=>c["solver"]["maxfevals"]),(:opttol=>c["solver"]["opttol"]),(:opttol_abs=>c["solver"]["opttol_abs"]),(:xtol=>c["solver"]["xtol"]),(:algorithm=>c["solver"]["algorithm"]),(:bar_murule=>c["solver"]["bar_murule"]),(:linsolver=>c["solver"]["linsolver"]),(:cg_pmem=>c["solver"]["cg_pmem"]),(:bar_initpt=>c["solver"]["bar_initpt"]),(:bar_penaltycons=>c["solver"]["bar_penaltycons"]),(:bar_penaltyrule=>c["solver"]["bar_penaltyrule"]),(:bar_switchrule=>c["solver"]["bar_switchrule"]),(:linesearch=>c["solver"]["linesearch"]))
  elseif c["misc"]["solver"] == :Ipopt
-   #SS=(S1,(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol),(:warm_start_init_point=>c.s.warm_start_init_point),(:dual_inf_tol=>c.s.dual_inf_tol),(:compl_inf_tol=>c.s.compl_inf_tol),(:acceptable_tol=>c.s.acceptable_tol),(:acceptable_constr_viol_tol=>c.s.acceptable_constr_viol_tol),(:acceptable_dual_inf_tol=>c.s.acceptable_dual_inf_tol),(:acceptable_compl_inf_tol=>c.s.acceptable_compl_inf_tol),(:acceptable_obj_change_tol=>c.s.acceptable_obj_change_tol))
-   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>c["solver"]["maxtime_cpu"]),(maxit=>c["solver"]["maxit"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]),(:warm_start_init_point=>c["solver"]["warm_start_init_point"]),(:dual_inf_tol=>c["solver"]["dual_inf_tol"]),(:compl_inf_tol=>c["solver"]["compl_inf_tol"]),(:acceptable_tol=>c["solver"]["acceptable_tol"]),(:acceptable_constr_viol_tol=>c["solver"]["acceptable_constr_viol_tol"]),(:acceptable_dual_inf_tol=>c["solver"]["acceptable_dual_inf_tol"]),(:acceptable_compl_inf_tol=>c["solver"]["acceptable_compl_inf_tol"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]))
+   SS = ((:name=>c["misc"]["solver"]),(outlev=>c["solver"]["outlev"]),(feastol_abs=>c["solver"]["feastol_abs"]),(maxit=>c["solver"]["maxit"]),(maxtime_cpu=>maxtime),(maxit=>c["solver"]["maxit"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]),(:warm_start_init_point=>c["solver"]["warm_start_init_point"]),(:dual_inf_tol=>c["solver"]["dual_inf_tol"]),(:compl_inf_tol=>c["solver"]["compl_inf_tol"]),(:acceptable_tol=>c["solver"]["acceptable_tol"]),(:acceptable_constr_viol_tol=>c["solver"]["acceptable_constr_viol_tol"]),(:acceptable_dual_inf_tol=>c["solver"]["acceptable_dual_inf_tol"]),(:acceptable_compl_inf_tol=>c["solver"]["acceptable_compl_inf_tol"]),(:acceptable_obj_change_tol=>c["solver"]["acceptable_obj_change_tol"]))
  end
 
 return SS
@@ -68,7 +73,6 @@ function initializeAutonomousControl(c)
 
 if isequal(c["misc"]["model"],:ThreeDOFv2)
     XF = [copy(c["goal"]["x"]), copy(c["goal"]["yVal"]), NaN, NaN, NaN, NaN, NaN, NaN]
-    # XF = [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]
     XL = [x_min, y_min, NaN, NaN, psi_min, sa_min, u_min, NaN]
     XU = [x_max, y_max, NaN, NaN, psi_max, sa_max, u_max, NaN]
     CL = [sr_min, jx_min]; CU = [sr_max, jx_max]
@@ -197,6 +201,9 @@ elseif isequal(c["misc"]["model"],:KinematicBicycle2)
  n.ocp.params = [pa,obs_params,LiDAR_params,obj_params,c]
  initOpt!(n;save=c["misc"]["ocpSave"],evalConstraints=c["misc"]["evalConstraints"])
 
+ # after the initial optimization, reconfigure solver so that it does not have as much time as it needs
+ defineSolver!(n,Dict(solverConfig(c,false)))
+
  # set mpc parameters
  if isequal(c["misc"]["model"],:ThreeDOFv2)
    goal = [c["goal"]["x"],c["goal"]["yVal"],NaN,NaN,NaN,NaN,NaN,NaN]
@@ -310,16 +317,16 @@ end
 """
 --------------------------------------------------------------------------------------\n
 Author: Huckleberry Febbo, Graduate Student, University of Michigan
-Date Create: 4/08/2018, Last Modified: 4/08/2018 \n
+Date Create: 4/08/2018, Last Modified: 1/25/2019 \n
 --------------------------------------------------------------------------------------\n
 """
 function configProb!(n,c)
-  #c.s.maxtime_cpu = 300. # initially giving solver as much time as needed
+
   # configure problem
   if c["misc"]["integrationScheme"]==:lgrImplicit || c["misc"]["integrationScheme"]==:lgrExplicit
-    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
+    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:Nck=>c["misc"]["Nck"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,true)))
   else
-    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c)))
+    configure!(n;(:xFslackVariables=>c["misc"]["xFslackVariables"]),(:x0slackVariables=>c["misc"]["x0slackVariables"]),(:N=>c["misc"]["N"]),(:integrationScheme=>c["misc"]["integrationScheme"]),(:finalTimeDV=>c["misc"]["finalTimeDV"]),(:solverSettings=>solverConfig(c,true)))
   end
   return nothing
 end

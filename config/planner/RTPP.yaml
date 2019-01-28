@@ -79,11 +79,13 @@ tolerances:
   fax: NaN
 
 solver:
+  maxtime_cpu_init: 60. # maximum initial solve time
+
   # settings for both KNITRO and IPOPT
   outlev: 0 # (c.m.solver==:Ipopt) ? :print_level : :outlev # print level
   feastol_abs: 7e-2 # (c.m.solver==:Ipopt) ? :constr_viol_tol : :feastol_abs
   maxit: 500 # (c.m.solver==:Ipopt) ? :max_iter : :maxit
-  maxtime_cpu: 50. # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
+  maxtime_cpu: 15.0 # (c.m.solver==:Ipopt) ? :max_cpu_time : :maxtime_cpu
 
   # settings for KNITRO
   ftol: 1e-15 # relative change in the objective function is less than ftol for ftol_iters consecutive iterations
